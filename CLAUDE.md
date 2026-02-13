@@ -31,6 +31,7 @@ Sources/asc-client/
     ConfigureCommand.swift            # Interactive credential setup, file permissions
     AppsCommand.swift                 # All app subcommands + findApp/findVersion helpers
     BuildsCommand.swift               # Build subcommands
+    RunWorkflowCommand.swift          # Sequential command runner from workflow files
 ```
 
 ## Dependencies
@@ -80,6 +81,10 @@ asc-client apps upload-media <bundle-id> [--folder X] [--version X] [--replace] 
 asc-client apps download-media <bundle-id> [--folder X] [--version X]            # Download screenshots/previews
 asc-client apps verify-media <bundle-id> [--version X] [--folder X]                               # Check media status, retry stuck
 asc-client builds list [--bundle-id <id>]                         # List builds
+asc-client builds archive [--workspace X] [--scheme X] [--output X]  # Archive Xcode project
+asc-client builds upload [file]                                   # Upload build via altool
+asc-client builds validate [file]                                 # Validate build via altool
+asc-client run-workflow <file> [--yes]                            # Run commands from a workflow file
 ```
 
 ## Key Patterns
@@ -87,10 +92,29 @@ asc-client builds list [--bundle-id <id>]                         # List builds
 ### Adding a new subcommand
 1. Add the command struct inside `AppsCommand` (or create a new command group)
 2. Use `AsyncParsableCommand` for commands that call the API
-3. Register in parent's `subcommands` array
+3. Register in the appropriate `CommandGroup` in the parent's configuration (see below)
 4. Use `findApp(bundleID:client:)` to resolve bundle ID to app ID
 5. Use `findVersion(appID:versionString:client:)` to resolve version (nil = latest)
 6. Use shared `formatDate()` and `expandPath()` from Formatting.swift
+7. Run `asc-client install-completions` to regenerate completions after adding commands
+
+### Subcommand grouping
+`AppsCommand` uses `CommandGroup` (swift-argument-parser 1.7+) to organize subcommands into sections in `--help` output:
+- **ungrouped** (`subcommands:`): list, info, versions — general browse commands
+- **Version**: create-version, attach-build, attach-latest-build, detach-build
+- **Localization**: localizations, export-localizations, update-localization, update-localizations
+- **Media**: download-media, upload-media, verify-media
+- **Review**: review-status, submit-for-review
+
+When adding a new subcommand, place it in the appropriate `CommandGroup` or create a new one. Shell completions are alphabetically sorted by zsh — don't try to force custom ordering there.
+
+### Workflow files (used by run-workflow)
+- One command per line, without the `asc-client` prefix
+- Lines starting with `#` are comments, blank lines are ignored
+- Quoted strings are respected for arguments with spaces (e.g. `--file "path with spaces.json"`)
+- Without `--yes`: prompts once to confirm the workflow, then individual commands still prompt normally
+- With `--yes`: sets `autoConfirm = true` globally, all prompts are skipped
+- Commands are dispatched via `ASCClient.parseAsRoot(args)` — any registered subcommand works
 
 ### API calls
 - **`filterBundleID` does prefix matching** — `com.foo.Bar` also matches `com.foo.BarPro`. Always use `findApp()` which filters for exact `bundleID` match from results.
