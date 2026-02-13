@@ -84,6 +84,7 @@ asc-client builds list [--bundle-id <id>]                         # List builds
 asc-client builds archive [--workspace X] [--scheme X] [--output X]  # Archive Xcode project
 asc-client builds upload [file]                                   # Upload build via altool
 asc-client builds validate [file]                                 # Validate build via altool
+asc-client builds await-processing <bundle-id> [--build-version X]  # Wait for build to finish processing
 asc-client run-workflow <file> [--yes]                            # Run commands from a workflow file
 ```
 
