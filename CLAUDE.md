@@ -31,6 +31,8 @@ Sources/asc-client/
     ConfigureCommand.swift            # Interactive credential setup, file permissions
     AppsCommand.swift                 # All app subcommands + findApp/findVersion helpers
     BuildsCommand.swift               # Build subcommands
+    IAPCommand.swift                  # In-app purchase subcommands (read-only)
+    SubCommand.swift                 # Subscription subcommands (read-only)
     RunWorkflowCommand.swift          # Sequential command runner from workflow files
 ```
 
@@ -93,6 +95,12 @@ asc-client builds archive [--workspace X] [--scheme X] [--output X]  # Archive X
 asc-client builds upload [file]                                   # Upload build via altool
 asc-client builds validate [file]                                 # Validate build via altool
 asc-client builds await-processing <bundle-id> [--build-version X]  # Wait for build to finish processing
+asc-client iap list <bundle-id> [--type X] [--state X]            # List in-app purchases
+asc-client iap info <bundle-id> <product-id>                       # IAP details with localizations
+asc-client iap promoted <bundle-id>                                # List promoted purchases
+asc-client sub groups <bundle-id>                                 # List subscription groups with subscriptions
+asc-client sub list <bundle-id>                                   # Flat list of all subscriptions
+asc-client sub info <bundle-id> <product-id>                      # Subscription details with localizations
 asc-client run-workflow <file> [--yes]                            # Run commands from a workflow file
 ```
 
@@ -197,7 +205,7 @@ media/
 API endpoints available but not yet added (43 app sub-resources + 9 top-level resources):
 - **TestFlight**: beta groups, beta testers, pre-release versions, beta app localizations
 - **Provisioning**: devices, bundle IDs, certificates, profiles
-- **Monetization**: in-app purchases, subscriptions, price points, promoted purchases
+- **Monetization**: price points, in-app purchase management (create/update/delete), subscription management (create/update/delete)
 - **Feedback**: customer reviews, review summarizations
 - **Analytics**: analytics reports, performance power metrics
 - **Configuration**: app events, app clips, custom product pages, A/B experiments
