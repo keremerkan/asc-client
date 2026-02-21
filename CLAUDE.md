@@ -73,6 +73,9 @@ asc-client apps localizations <bundle-id> [--version X]           # View localiz
 asc-client apps review-status <bundle-id>                         # Review submission status
 asc-client apps create-version <bundle-id> <ver> [--platform X]   # Create new version
 asc-client apps select-build <bundle-id> [--version X]            # Attach a build to a version
+asc-client apps phased-release <bundle-id> [--version X]          # View/manage phased release
+asc-client apps age-rating <bundle-id> [--version X] [--file X]   # View/update age rating
+asc-client apps routing-coverage <bundle-id> [--file X]           # View/upload routing coverage
 asc-client apps submit-for-review <bundle-id> [--version X]       # Submit version for App Review
 asc-client apps update-localization <bundle-id> [--locale X]      # Update single locale via flags
 asc-client apps update-localizations <bundle-id> [--file X]       # Bulk update from JSON file
@@ -102,7 +105,7 @@ asc-client run-workflow <file> [--yes]                            # Run commands
 ### Subcommand grouping
 `AppsCommand` uses `CommandGroup` (swift-argument-parser 1.7+) to organize subcommands into sections in `--help` output:
 - **ungrouped** (`subcommands:`): list, info, versions — general browse commands
-- **Version**: create-version, attach-build, attach-latest-build, detach-build
+- **Version**: create-version, attach-build, attach-latest-build, detach-build, phased-release, age-rating, routing-coverage
 - **Localization**: localizations, export-localizations, update-localization, update-localizations
 - **Media**: download-media, upload-media, verify-media
 - **Review**: review-status, submit-for-review
