@@ -135,8 +135,12 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
 
 ### API calls
 - **`filterBundleID` does prefix matching** — `com.foo.Bar` also matches `com.foo.BarPro`. Always use `findApp()` which filters for exact `bundleID` match from results.
-- **Build relationship returns null when unattached** — `GET /v1/appStoreVersions/{id}/build` returns `{"data": null}` when no build is attached, but `BuildWithoutIncludesResponse.data` is non-optional. Use `try?` to handle the decoding failure gracefully.
+- **Null data in non-optional response fields** — Several GET sub-resource endpoints return `{"data": null}` when no related object exists (e.g. build on version, EULA on app), but generated response types have non-optional `data`. Catch `DecodingError` for these. For EULA, also catch `ResponseError` with 404 status. Never use bare `try?` — it swallows network/auth errors too.
 - Builds don't have `filterBundleID` — look up app first, then use `filterApp: [appID]`
+- **Encryption declarations use top-level endpoint** — `Resources.v1.apps.id(appID).appEncryptionDeclarations` returns 404 for some apps. Use `Resources.v1.appEncryptionDeclarations.get(filterApp: [appID])` instead.
+- **Territory availability limit is 50** — The v1 `include: [.territoryAvailabilities]` has a max limit of 50. Use the v2 sub-resource endpoint `Resources.v2.appAvailabilities.id(availabilityID).territoryAvailabilities.get(limit: 50, include: [.territory])` with `client.pages()` pagination.
+- **Multiple AppInfo objects per app** — `appInfos.get()` can return multiple objects (current + replaced). Filter by `state != .replacedWithNewInfo`. Included localizations must be filtered by the selected AppInfo's `relationships.appInfoLocalizations.data` IDs — back-references on included items aren't populated.
+- **AppCategory has no name attribute** — The category `id` IS the human-readable name (e.g. `UTILITIES`, `GAMES_ACTION`). No separate name field exists.
 - Localizations are per-version: get version ID first, then fetch/update localizations
 - Updates are one API call per locale — no bulk endpoint in the API
 - Only versions in editable states (e.g. `PREPARE_FOR_SUBMISSION`) accept localization updates
