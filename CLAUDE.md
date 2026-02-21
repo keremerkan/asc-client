@@ -83,6 +83,11 @@ asc-client apps export-localizations <bundle-id> [--version X]    # Export to JS
 asc-client apps upload-media <bundle-id> [--folder X] [--version X] [--replace]  # Upload screenshots/previews
 asc-client apps download-media <bundle-id> [--folder X] [--version X]            # Download screenshots/previews
 asc-client apps verify-media <bundle-id> [--version X] [--folder X]                               # Check media status, retry stuck
+asc-client apps app-info <bundle-id> [--primary-category X]       # View/update app info and categories
+asc-client apps app-info --list-categories                        # List available category IDs
+asc-client apps availability <bundle-id> [--add X] [--remove X]  # View/update territory availability
+asc-client apps encryption <bundle-id> [--create]                 # View/create encryption declarations
+asc-client apps eula <bundle-id> [--file X] [--delete]            # View/manage custom EULA
 asc-client builds list [--bundle-id <id>]                         # List builds
 asc-client builds archive [--workspace X] [--scheme X] [--output X]  # Archive Xcode project
 asc-client builds upload [file]                                   # Upload build via altool
@@ -109,6 +114,7 @@ asc-client run-workflow <file> [--yes]                            # Run commands
 - **Localization**: localizations, export-localizations, update-localization, update-localizations
 - **Media**: download-media, upload-media, verify-media
 - **Review**: review-status, submit-for-review
+- **Configuration**: app-info, availability, encryption, eula
 
 When adding a new subcommand, place it in the appropriate `CommandGroup` or create a new one. Shell completions are alphabetically sorted by zsh — don't try to force custom ordering there.
 
@@ -190,7 +196,7 @@ API endpoints available but not yet added (43 app sub-resources + 9 top-level re
 - **Monetization**: in-app purchases, subscriptions, price points, promoted purchases
 - **Feedback**: customer reviews, review summarizations
 - **Analytics**: analytics reports, performance power metrics
-- **Configuration**: app info/categories, availability/territories, encryption declarations, EULA, app events, app clips, custom product pages, A/B experiments
+- **Configuration**: app events, app clips, custom product pages, A/B experiments
 
 ## Release build note
 
