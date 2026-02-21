@@ -116,6 +116,13 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
 - Without `--yes`: prompts once to confirm the workflow, then individual commands still prompt normally
 - With `--yes`: sets `autoConfirm = true` globally, all prompts are skipped
 - Commands are dispatched via `ASCClient.parseAsRoot(args)` — any registered subcommand works
+- Nested workflows supported (`run-workflow` can call another workflow file) with circular reference detection via `activeWorkflows` path stack
+- `builds upload` sets `lastUploadedBuildVersion` global — subsequent `await-processing` and `attach-latest-build` automatically target the just-uploaded build, avoiding race conditions with API propagation delay
+
+### Build processing
+- `awaitBuildProcessing()` is a shared helper in `AppsCommand.swift` (alongside `findApp`/`findVersion`) — used by both `builds await-processing` and `attach-latest-build`
+- Recently uploaded builds may take a few minutes to appear in the API — the helper polls with a dot-based progress indicator until the build is found
+- `attach-latest-build` prompts to wait if the latest build is still `PROCESSING`; with `--yes` it waits automatically
 
 ### API calls
 - **`filterBundleID` does prefix matching** — `com.foo.Bar` also matches `com.foo.BarPro`. Always use `findApp()` which filters for exact `bundleID` match from results.
