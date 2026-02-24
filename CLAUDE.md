@@ -22,7 +22,7 @@ cp .build/release/asc-client /usr/local/bin/
 ```
 Package.swift                         # SPM manifest (Swift 6.0, macOS 13+)
 Sources/asc-client/
-  ASCClient.swift                     # @main entry, root AsyncParsableCommand
+  ASCClient.swift                     # @main entry, root AsyncParsableCommand, central error handling
   Config.swift                        # ~/.asc-client/config.json loader, ConfigError
   ClientFactory.swift                 # Creates authenticated AppStoreConnectClient
   Formatting.swift                    # Shared helpers: Table.print, formatDate, expandPath
@@ -34,6 +34,7 @@ Sources/asc-client/
     IAPCommand.swift                  # In-app purchase subcommands (read-only)
     SubCommand.swift                 # Subscription subcommands (read-only)
     RunWorkflowCommand.swift          # Sequential command runner from workflow files
+    InstallCompletionsCommand.swift   # Shell completion installer with post-processing patches
     RateLimitCommand.swift            # API rate limit status check
 ```
 
@@ -129,6 +130,22 @@ asc-client rate-limit                                             # Show API rat
 - **Configuration**: app-info, availability, encryption, eula
 
 When adding a new subcommand, place it in the appropriate `CommandGroup` or create a new one. Shell completions are alphabetically sorted by zsh — don't try to force custom ordering there.
+
+### Version management
+- **No root `--version` flag** — `CommandConfiguration` does NOT have a `version:` parameter. This is intentional: ArgumentParser leaks the root `--version` flag into every subcommand's completion function, which conflicts with subcommands that define their own `--version` option (e.g. `builds list --version`, `apps review-status --version`).
+- Version is stored as `static let appVersion` in `ASCClient.swift` and printed on bare `asc-client` invocation.
+- `install-completions` stamps `# asc-client vX.Y.Z` into completion scripts (after `#compdef` line for zsh) so `checkCompletionsVersion()` can detect outdated completions.
+
+### Shell completions (`install-completions`)
+- ArgumentParser's generated completion scripts need post-processing:
+  - **`#compdef` must be line 1** in zsh completion files — never prepend content before it or compinit won't recognize the file.
+  - `patchZshHelpCompletions` / `patchBashHelpCompletions` — fix `asc-client help <tab>` to list subcommands (ArgumentParser generates a broken/empty help function).
+  - `-V` flag removed from `_describe` so zsh sorts subcommands alphabetically.
+
+### Error handling
+- `ASCClient.main()` overrides the default entry point to catch and format errors centrally.
+- `ResponseError` (from asc-swift): handles rate limit (429), HTTP status codes (401/403/5xx), and empty responses.
+- `URLError`: handles connectivity issues (no internet, DNS, timeout, connection lost, TLS).
 
 ### Workflow files (used by run-workflow)
 - One command per line, without the `asc-client` prefix
