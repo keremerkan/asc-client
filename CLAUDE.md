@@ -34,6 +34,7 @@ Sources/asc-client/
     IAPCommand.swift                  # In-app purchase subcommands (read-only)
     SubCommand.swift                 # Subscription subcommands (read-only)
     RunWorkflowCommand.swift          # Sequential command runner from workflow files
+    RateLimitCommand.swift            # API rate limit status check
 ```
 
 ## Dependencies
@@ -72,13 +73,15 @@ asc-client apps list                                              # List all app
 asc-client apps info <bundle-id>                                  # App details
 asc-client apps versions <bundle-id>                              # List App Store versions
 asc-client apps localizations <bundle-id> [--version X]           # View localizations
-asc-client apps review-status <bundle-id>                         # Review submission status
+asc-client apps review-status <bundle-id> [--version X]            # Review submission status
 asc-client apps create-version <bundle-id> <ver> [--platform X]   # Create new version
 asc-client apps select-build <bundle-id> [--version X]            # Attach a build to a version
 asc-client apps phased-release <bundle-id> [--version X]          # View/manage phased release
 asc-client apps age-rating <bundle-id> [--version X] [--file X]   # View/update age rating
 asc-client apps routing-coverage <bundle-id> [--file X]           # View/upload routing coverage
 asc-client apps submit-for-review <bundle-id> [--version X]       # Submit version for App Review
+asc-client apps resolve-issues <bundle-id>                        # Mark rejected items as resolved
+asc-client apps cancel-submission <bundle-id>                     # Cancel an active review submission
 asc-client apps update-localization <bundle-id> [--locale X]      # Update single locale via flags
 asc-client apps update-localizations <bundle-id> [--file X]       # Bulk update from JSON file
 asc-client apps export-localizations <bundle-id> [--version X]    # Export to JSON file
@@ -90,7 +93,7 @@ asc-client apps app-info --list-categories                        # List availab
 asc-client apps availability <bundle-id> [--add X] [--remove X]  # View/update territory availability
 asc-client apps encryption <bundle-id> [--create]                 # View/create encryption declarations
 asc-client apps eula <bundle-id> [--file X] [--delete]            # View/manage custom EULA
-asc-client builds list [--bundle-id <id>]                         # List builds
+asc-client builds list [--bundle-id <id>] [--version X]           # List builds
 asc-client builds archive [--workspace X] [--scheme X] [--output X]  # Archive Xcode project
 asc-client builds upload [file]                                   # Upload build via altool
 asc-client builds validate [file]                                 # Validate build via altool
@@ -101,7 +104,8 @@ asc-client iap promoted <bundle-id>                                # List promot
 asc-client sub groups <bundle-id>                                 # List subscription groups with subscriptions
 asc-client sub list <bundle-id>                                   # Flat list of all subscriptions
 asc-client sub info <bundle-id> <product-id>                      # Subscription details with localizations
-asc-client run-workflow <file> [--yes]                            # Run commands from a workflow file
+asc-client run-workflow [file] [--yes]                            # Run commands from a workflow file
+asc-client rate-limit                                             # Show API rate limit status
 ```
 
 ## Key Patterns
@@ -121,7 +125,7 @@ asc-client run-workflow <file> [--yes]                            # Run commands
 - **Version**: create-version, attach-build, attach-latest-build, detach-build, phased-release, age-rating, routing-coverage
 - **Localization**: localizations, export-localizations, update-localization, update-localizations
 - **Media**: download-media, upload-media, verify-media
-- **Review**: review-status, submit-for-review
+- **Review**: review-status, submit-for-review, resolve-issues, cancel-submission
 - **Configuration**: app-info, availability, encryption, eula
 
 When adding a new subcommand, place it in the appropriate `CommandGroup` or create a new one. Shell completions are alphabetically sorted by zsh — don't try to force custom ordering there.
