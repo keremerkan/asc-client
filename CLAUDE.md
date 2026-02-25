@@ -107,6 +107,7 @@ asc-client sub list <bundle-id>                                   # Flat list of
 asc-client sub info <bundle-id> <product-id>                      # Subscription details with localizations
 asc-client run-workflow [file] [--yes]                            # Run commands from a workflow file
 asc-client rate-limit                                             # Show API rate limit status
+asc-client version                                                # Print version number (also: --version, -v)
 ```
 
 ## Key Patterns
@@ -132,8 +133,9 @@ asc-client rate-limit                                             # Show API rat
 When adding a new subcommand, place it in the appropriate `CommandGroup` or create a new one. Shell completions are alphabetically sorted by zsh — don't try to force custom ordering there.
 
 ### Version management
-- **No root `--version` flag** — `CommandConfiguration` does NOT have a `version:` parameter. This is intentional: ArgumentParser leaks the root `--version` flag into every subcommand's completion function, which conflicts with subcommands that define their own `--version` option (e.g. `builds list --version`, `apps review-status --version`).
-- Version is stored as `static let appVersion` in `ASCClient.swift` and printed on bare `asc-client` invocation.
+- **No `version:` on `CommandConfiguration`** — intentionally omitted. ArgumentParser leaks a root `--version` flag into every subcommand's completion function, which conflicts with subcommands that define their own `--version` option (e.g. `builds list --version`, `apps review-status --version`).
+- Version is stored as `static let appVersion` in `ASCClient.swift`.
+- `asc-client version` subcommand prints just the version number. `--version` and `-v` are intercepted in `main()` before ArgumentParser and produce the same output.
 - `install-completions` stamps `# asc-client vX.Y.Z` into completion scripts (after `#compdef` line for zsh) so `checkCompletionsVersion()` can detect outdated completions.
 
 ### Shell completions (`install-completions`)
