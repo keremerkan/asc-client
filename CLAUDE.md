@@ -33,6 +33,10 @@ Sources/asc-client/
     BuildsCommand.swift               # Build subcommands
     IAPCommand.swift                  # In-app purchase subcommands (read-only)
     SubCommand.swift                 # Subscription subcommands (read-only)
+    DevicesCommand.swift              # Device management subcommands + findDevice helper
+    CertsCommand.swift                # Signing certificate subcommands + findCertificate helper
+    BundleIDsCommand.swift            # Bundle identifier subcommands + findBundleID helper
+    ProfilesCommand.swift             # Provisioning profile subcommands + findProfile helper
     RunWorkflowCommand.swift          # Sequential command runner from workflow files
     InstallCompletionsCommand.swift   # Shell completion installer with post-processing patches
     RateLimitCommand.swift            # API rate limit status check
@@ -49,6 +53,7 @@ Sources/asc-client/
   - Pagination: `for try await page in client.pages(request)`
   - Resolved version: 1.5.0 (with swift-crypto, URLQueryEncoder, swift-asn1 as transitive deps)
 - **[swift-argument-parser](https://github.com/apple/swift-argument-parser)** (1.3.0+) — CLI framework
+- **[swift-certificates](https://github.com/apple/swift-certificates)** (1.0.0+) — X.509 certificate and CSR generation (used by `certs create` auto-CSR flow)
 
 ## Authentication
 
@@ -105,6 +110,27 @@ asc-client iap promoted <bundle-id>                                # List promot
 asc-client sub groups <bundle-id>                                 # List subscription groups with subscriptions
 asc-client sub list <bundle-id>                                   # Flat list of all subscriptions
 asc-client sub info <bundle-id> <product-id>                      # Subscription details with localizations
+asc-client devices list [--name X] [--platform X] [--status X]   # List registered devices
+asc-client devices info [name-or-udid]                            # Device details (interactive picker if omitted)
+asc-client devices register [--name X] [--udid X] [--platform X] [-y]  # Register a new device (interactive if omitted)
+asc-client devices update [name-or-udid] [--name X] [--status X] [-y]  # Update device (interactive if omitted)
+asc-client certs list [--type X] [--display-name X]               # List signing certificates
+asc-client certs info [serial-or-name]                            # Certificate details (interactive picker if omitted)
+asc-client certs create [--type X] [--csr <file>] [--output X] [-y]  # Create certificate (interactive type picker if omitted)
+asc-client certs revoke [serial-number] [-y]                      # Revoke a certificate (interactive picker if omitted)
+asc-client bundle-ids list [--platform X] [--identifier X]        # List bundle identifiers
+asc-client bundle-ids info [identifier]                           # Bundle ID details with capabilities (interactive picker if omitted)
+asc-client bundle-ids register [--name X] [--identifier X] [--platform X] [-y]  # Register a bundle ID (interactive if omitted)
+asc-client bundle-ids update [identifier] [--name X] [-y]         # Rename a bundle ID (interactive if omitted)
+asc-client bundle-ids delete [identifier] [-y]                    # Delete a bundle ID (interactive picker if omitted)
+asc-client bundle-ids enable-capability [identifier] [--type X] [-y]   # Enable a capability (interactive if omitted)
+asc-client bundle-ids disable-capability [identifier] [-y]        # Disable a capability (interactive picker)
+asc-client profiles list [--name X] [--type X] [--state X]       # List provisioning profiles
+asc-client profiles info [name]                                   # Profile details (interactive picker if omitted)
+asc-client profiles download [name] [--output X]                  # Download profile (interactive picker if omitted)
+asc-client profiles create [--name X] [--type X] [--bundle-id X] [--certificates X] [--devices X] [--output X] [-y]  # Create a profile (interactive if omitted; --certificates all = all of matching family)
+asc-client profiles delete [name] [-y]                            # Delete a profile (interactive picker if omitted)
+asc-client profiles reissue [name] [--all] [--all-invalid] [--to-certs X] [--all-devices] [-y]  # Reissue profiles with latest cert (or specific certs)
 asc-client run-workflow [file] [--yes]                            # Run commands from a workflow file
 asc-client rate-limit                                             # Show API rate limit status
 asc-client version                                                # Print version number (also: --version, -v)
@@ -144,6 +170,15 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
   - `patchZshHelpCompletions` / `patchBashHelpCompletions` — fix `asc-client help <tab>` to list subcommands (ArgumentParser generates a broken/empty help function).
   - `-V` flag removed from `_describe` so zsh sorts subcommands alphabetically.
 
+### Interactive mode
+- Most provisioning commands (devices, certs, bundle-ids, profiles) support interactive mode — arguments and options are optional.
+- When omitted, commands prompt with numbered lists fetched from the API (e.g. bundle ID picker, certificate picker, profile type selection).
+- Text inputs use a recursive `promptText()` that retries on empty input (same pattern as ConfigureCommand's `prompt()`).
+- Selection lists use `[\(i + 1)]` numbering, `readLine()` input, `Int()` parsing, and range validation.
+- `--yes` / `autoConfirm` is incompatible with interactive mode — commands throw `ValidationError` when required options are missing with `--yes`.
+- `enable-capability` filters the type picker to exclude already-enabled capabilities; `disable-capability` only shows enabled ones.
+- `enable-capability` and `disable-capability` offer to regenerate provisioning profiles after changes (delete + recreate with same settings) via `regenerateProfilesIfNeeded()` helper in BundleIDsCommand.swift.
+
 ### Error handling
 - `ASCClient.main()` overrides the default entry point to catch and format errors centrally.
 - `ResponseError` (from asc-swift): handles rate limit (429), HTTP status codes (401/403/5xx), and empty responses.
@@ -165,6 +200,7 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
 - `attach-latest-build` prompts to wait if the latest build is still `PROCESSING`; with `--yes` it waits automatically
 
 ### API calls
+- **`Certificate` type is ambiguous** — both `AppStoreAPI.Certificate` and `X509.Certificate` exist. In `CertsCommand.swift` (which imports both), use `AppStoreAPI.Certificate` explicitly for API response types.
 - **`filterBundleID` does prefix matching** — `com.foo.Bar` also matches `com.foo.BarPro`. Always use `findApp()` which filters for exact `bundleID` match from results.
 - **Null data in non-optional response fields** — Several GET sub-resource endpoints return `{"data": null}` when no related object exists (e.g. build on version, EULA on app), but generated response types have non-optional `data`. Catch `DecodingError` for these. For EULA, also catch `ResponseError` with 404 status. Never use bare `try?` — it swallows network/auth errors too.
 - Builds don't have `filterBundleID` — look up app first, then use `filterApp: [appID]`
@@ -176,6 +212,7 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
 - Updates are one API call per locale — no bulk endpoint in the API
 - Only versions in editable states (e.g. `PREPARE_FOR_SUBMISSION`) accept localization updates
 - `create-version` `--release-type` is optional; omitting it uses the previous version's setting
+- **`bundleIDCapabilities` sub-resource rejects `limit`** — despite the generated code accepting `limit: Int?`, the API returns an error if `limit` is passed. Use `.get()` with no arguments.
 - Filter parameters vary per endpoint — check the generated PathsV1*.swift files for exact signatures
 
 ### Localization JSON format (used by export/update-localizations)
@@ -225,9 +262,8 @@ media/
 
 ## Not Yet Implemented
 
-API endpoints available but not yet added (43 app sub-resources + 9 top-level resources):
+API endpoints available but not yet added (43 app sub-resources + 5 top-level resources):
 - **TestFlight**: beta groups, beta testers, pre-release versions, beta app localizations
-- **Provisioning**: devices, bundle IDs, certificates, profiles
 - **Monetization**: price points, in-app purchase management (create/update/delete), subscription management (create/update/delete)
 - **Feedback**: customer reviews, review summarizations
 - **Analytics**: analytics reports, performance power metrics
