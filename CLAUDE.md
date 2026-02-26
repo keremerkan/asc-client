@@ -26,6 +26,7 @@ Sources/asc-client/
   Config.swift                        # ~/.asc-client/config.json loader, ConfigError
   ClientFactory.swift                 # Creates authenticated AppStoreConnectClient
   Formatting.swift                    # Shared helpers: Table.print, formatDate, expandPath
+  Aliases.swift                        # Alias storage (~/.asc-client/aliases.json), resolveAlias()
   MediaUpload.swift                   # Media management: upload, download, retry screenshots/previews
   Commands/
     ConfigureCommand.swift            # Interactive credential setup, file permissions
@@ -37,6 +38,7 @@ Sources/asc-client/
     CertsCommand.swift                # Signing certificate subcommands + findCertificate helper
     BundleIDsCommand.swift            # Bundle identifier subcommands + findBundleID helper
     ProfilesCommand.swift             # Provisioning profile subcommands + findProfile helper
+    AliasCommand.swift                # Alias management (add, remove, list) for bundle ID shortcuts
     RunWorkflowCommand.swift          # Sequential command runner from workflow files
     InstallCompletionsCommand.swift   # Shell completion installer with post-processing patches
     RateLimitCommand.swift            # API rate limit status check
@@ -78,24 +80,29 @@ asc-client configure                                              # Interactive 
 asc-client apps list                                              # List all apps
 asc-client apps info <bundle-id>                                  # App details
 asc-client apps versions <bundle-id>                              # List App Store versions
-asc-client apps localizations <bundle-id> [--version X]           # View localizations
-asc-client apps review-status <bundle-id> [--version X]            # Review submission status
+asc-client apps localizations view <bundle-id> [--version X]      # View localizations
+asc-client apps localizations update <bundle-id> [--locale X]     # Update single locale via flags
+asc-client apps localizations import <bundle-id> [--file X]       # Bulk update from JSON file
+asc-client apps localizations export <bundle-id> [--version X]    # Export to JSON file
+asc-client apps review status <bundle-id> [--version X]             # Review submission status
 asc-client apps create-version <bundle-id> <ver> [--platform X]   # Create new version
-asc-client apps select-build <bundle-id> [--version X]            # Attach a build to a version
+asc-client apps build attach <bundle-id> [--version X]             # Interactively select and attach a build
+asc-client apps build attach-latest <bundle-id> [--version X]     # Attach the most recent build
+asc-client apps build detach <bundle-id> [--version X]            # Remove the attached build
 asc-client apps phased-release <bundle-id> [--version X]          # View/manage phased release
 asc-client apps age-rating <bundle-id> [--version X] [--file X]   # View/update age rating
 asc-client apps routing-coverage <bundle-id> [--file X]           # View/upload routing coverage
-asc-client apps submit-for-review <bundle-id> [--version X]       # Submit version for App Review
-asc-client apps resolve-issues <bundle-id>                        # Mark rejected items as resolved
-asc-client apps cancel-submission <bundle-id>                     # Cancel an active review submission
-asc-client apps update-localization <bundle-id> [--locale X]      # Update single locale via flags
-asc-client apps update-localizations <bundle-id> [--file X]       # Bulk update from JSON file
-asc-client apps export-localizations <bundle-id> [--version X]    # Export to JSON file
-asc-client apps upload-media <bundle-id> [--folder X] [--version X] [--replace]  # Upload screenshots/previews
-asc-client apps download-media <bundle-id> [--folder X] [--version X]            # Download screenshots/previews
-asc-client apps verify-media <bundle-id> [--version X] [--folder X]                               # Check media status, retry stuck
-asc-client apps app-info <bundle-id> [--primary-category X]       # View/update app info and categories
-asc-client apps app-info --list-categories                        # List available category IDs
+asc-client apps review submit <bundle-id> [--version X]            # Submit version for App Review
+asc-client apps review resolve-issues <bundle-id>                 # Mark rejected items as resolved
+asc-client apps review cancel-submission <bundle-id>              # Cancel an active review submission
+asc-client apps media upload <bundle-id> [--folder X] [--version X] [--replace]  # Upload screenshots/previews
+asc-client apps media download <bundle-id> [--folder X] [--version X]            # Download screenshots/previews
+asc-client apps media verify <bundle-id> [--version X] [--folder X]              # Check media status, retry stuck
+asc-client apps app-info view <bundle-id>                         # View app info, categories, and localizations
+asc-client apps app-info view --list-categories                   # List available category IDs
+asc-client apps app-info update <bundle-id> [--name X] [--subtitle X] [--primary-category X] [-y]  # Update localization fields and/or categories
+asc-client apps app-info import <bundle-id> [--file X] [--verbose] [-y]  # Bulk update localizations from JSON
+asc-client apps app-info export <bundle-id> [--output X]          # Export localizations to JSON
 asc-client apps availability <bundle-id> [--add X] [--remove X]  # View/update territory availability
 asc-client apps encryption <bundle-id> [--create]                 # View/create encryption declarations
 asc-client apps eula <bundle-id> [--file X] [--delete]            # View/manage custom EULA
@@ -131,6 +138,9 @@ asc-client profiles download [name] [--output X]                  # Download pro
 asc-client profiles create [--name X] [--type X] [--bundle-id X] [--certificates X] [--devices X] [--output X] [-y]  # Create a profile (interactive if omitted; --certificates all = all of matching family)
 asc-client profiles delete [name] [-y]                            # Delete a profile (interactive picker if omitted)
 asc-client profiles reissue [name] [--all] [--all-invalid] [--to-certs X] [--all-devices] [-y]  # Reissue profiles with latest cert (or specific certs)
+asc-client alias add [name]                                       # Add/update an alias (interactive app picker if name omitted)
+asc-client alias remove [name] [-y]                               # Remove an alias (interactive picker if name omitted)
+asc-client alias list                                             # List all aliases
 asc-client run-workflow [file] [--yes]                            # Run commands from a workflow file
 asc-client rate-limit                                             # Show API rate limit status
 asc-client version                                                # Print version number (also: --version, -v)
@@ -150,16 +160,22 @@ asc-client version                                                # Print versio
 ### Subcommand grouping
 `AppsCommand` uses `CommandGroup` (swift-argument-parser 1.7+) to organize subcommands into sections in `--help` output:
 - **ungrouped** (`subcommands:`): list, info, versions — general browse commands
-- **Version**: create-version, attach-build, attach-latest-build, detach-build, phased-release, age-rating, routing-coverage
-- **Localization**: localizations, export-localizations, update-localization, update-localizations
-- **Media**: download-media, upload-media, verify-media
-- **Review**: review-status, submit-for-review, resolve-issues, cancel-submission
-- **Configuration**: app-info, availability, encryption, eula
+- **Version**: create-version, build (attach, attach-latest, detach), phased-release, routing-coverage
+- **Info & Content**: app-info (view, update, import, export), localizations (view, update, import, export), media (upload, download, verify)
+- **Configuration**: age-rating, availability, encryption, eula
+- **Review**: review (status, submit, resolve-issues, cancel-submission)
 
 When adding a new subcommand, place it in the appropriate `CommandGroup` or create a new one. Shell completions are alphabetically sorted by zsh — don't try to force custom ordering there.
 
+### App aliases
+- Aliases map short names to bundle IDs, stored in `~/.asc-client/aliases.json`
+- `resolveAlias()` in `Aliases.swift` is the single resolution function — if input contains no dots, look up in aliases
+- `findApp()` in `AppsCommand.swift` calls `resolveAlias()` at the top — this covers all app, IAP, subscription, and build commands automatically
+- Alias names must match `^[a-zA-Z0-9_-]+$` — no dots (dots distinguish real bundle IDs from aliases)
+- `bundle-ids`, `profiles`, `devices`, `certs` commands do NOT resolve aliases (different domain)
+
 ### Version management
-- **No `version:` on `CommandConfiguration`** — intentionally omitted. ArgumentParser leaks a root `--version` flag into every subcommand's completion function, which conflicts with subcommands that define their own `--version` option (e.g. `builds list --version`, `apps review-status --version`).
+- **No `version:` on `CommandConfiguration`** — intentionally omitted. ArgumentParser leaks a root `--version` flag into every subcommand's completion function, which conflicts with subcommands that define their own `--version` option (e.g. `builds list --version`, `apps review status --version`).
 - Version is stored as `static let appVersion` in `ASCClient.swift`.
 - `asc-client version` subcommand prints just the version number. `--version` and `-v` are intercepted in `main()` before ArgumentParser and produce the same output.
 - `install-completions` stamps `# asc-client vX.Y.Z` into completion scripts (after `#compdef` line for zsh) so `checkCompletionsVersion()` can detect outdated completions.
@@ -192,12 +208,12 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
 - With `--yes`: sets `autoConfirm = true` globally, all prompts are skipped
 - Commands are dispatched via `ASCClient.parseAsRoot(args)` — any registered subcommand works
 - Nested workflows supported (`run-workflow` can call another workflow file) with circular reference detection via `activeWorkflows` path stack
-- `builds upload` sets `lastUploadedBuildVersion` global — subsequent `await-processing` and `attach-latest-build` automatically target the just-uploaded build, avoiding race conditions with API propagation delay
+- `builds upload` sets `lastUploadedBuildVersion` global — subsequent `await-processing` and `build attach-latest` automatically target the just-uploaded build, avoiding race conditions with API propagation delay
 
 ### Build processing
-- `awaitBuildProcessing()` is a shared helper in `AppsCommand.swift` (alongside `findApp`/`findVersion`) — used by both `builds await-processing` and `attach-latest-build`
+- `awaitBuildProcessing()` is a shared helper in `AppsCommand.swift` (alongside `findApp`/`findVersion`) — used by both `builds await-processing` and `build attach-latest`
 - Recently uploaded builds may take a few minutes to appear in the API — the helper polls with a dot-based progress indicator until the build is found
-- `attach-latest-build` prompts to wait if the latest build is still `PROCESSING`; with `--yes` it waits automatically
+- `build attach-latest` prompts to wait if the latest build is still `PROCESSING`; with `--yes` it waits automatically
 
 ### API calls
 - **`Certificate` type is ambiguous** — both `AppStoreAPI.Certificate` and `X509.Certificate` exist. In `CertsCommand.swift` (which imports both), use `AppStoreAPI.Certificate` explicitly for API response types.
@@ -210,7 +226,7 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
 - **AppCategory has no name attribute** — The category `id` IS the human-readable name (e.g. `UTILITIES`, `GAMES_ACTION`). No separate name field exists.
 - Localizations are per-version: get version ID first, then fetch/update localizations
 - Updates are one API call per locale — no bulk endpoint in the API
-- Only versions in editable states (e.g. `PREPARE_FOR_SUBMISSION`) accept localization updates
+- Only versions in editable states (`PREPARE_FOR_SUBMISSION` or `WAITING_FOR_REVIEW`) accept localization updates — except `promotionalText`, which can be updated in any state
 - `create-version` `--release-type` is optional; omitting it uses the previous version's setting
 - **`bundleIDCapabilities` sub-resource rejects `limit`** — despite the generated code accepting `limit: Int?`, the API returns an error if `limit` is passed. Use `.get()` with no arguments.
 - Filter parameters vary per endpoint — check the generated PathsV1*.swift files for exact signatures
@@ -231,7 +247,21 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
 
 Only fields present in the JSON get updated — omitted fields are left unchanged. The `LocaleFields` struct in AppsCommand.swift defines the schema.
 
-### Media upload folder structure (used by upload-media)
+### App info localization JSON format (used by app-info export/import)
+```json
+{
+  "en-US": {
+    "name": "My App",
+    "subtitle": "Best app ever",
+    "privacyPolicyURL": "https://example.com/privacy",
+    "privacyChoicesURL": "https://example.com/choices"
+  }
+}
+```
+
+Same convention — only fields present get updated. The `AppInfoLocaleFields` struct in AppsCommand.swift defines the schema. The `app-info update` and `app-info import` commands check that the AppInfo is in an editable state (`PREPARE_FOR_SUBMISSION` or `WAITING_FOR_REVIEW`) before proceeding.
+
+### Media upload folder structure (used by media upload)
 ```
 media/
 ├── en-US/
@@ -257,7 +287,7 @@ media/
 - `AppPreview.videoURL` provides direct download URL for preview videos
 - Reorder screenshots via `PATCH /v1/appScreenshotSets/{id}/relationships/appScreenshots` with `AppScreenshotSetAppScreenshotsLinkagesRequest`
 - `AppMediaAssetState.State` values: `.awaitingUpload`, `.uploadComplete`, `.complete`, `.failed` — stuck items show `uploadComplete`
-- `verify-media` checks all media status; with `--folder` retries stuck items: delete → upload → reorder
+- `media verify` checks all media status; with `--folder` retries stuck items: delete → upload → reorder
 - File matching: server position N = Nth file alphabetically in local `locale/displayType/` folder
 
 ## Not Yet Implemented
