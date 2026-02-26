@@ -82,18 +82,18 @@ Instead of typing full bundle IDs every time, you can create short aliases:
 
 ```bash
 # Add an alias (interactive app picker)
-asc-client alias add qrafter
+asc-client alias add myapp
 
 # Now use the alias anywhere you'd use a bundle ID
-asc-client apps info qrafter
-asc-client apps versions qrafter
-asc-client apps localizations view qrafter
+asc-client apps info myapp
+asc-client apps versions myapp
+asc-client apps localizations view myapp
 
 # List all aliases
 asc-client alias list
 
 # Remove an alias
-asc-client alias remove qrafter
+asc-client alias remove myapp
 ```
 
 Aliases are stored in `~/.asc-client/aliases.json`. Any argument that doesn't contain a dot is looked up as an alias — real bundle IDs (which always contain dots) work unchanged.
