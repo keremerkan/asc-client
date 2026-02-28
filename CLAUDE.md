@@ -25,7 +25,7 @@ Sources/asc-client/
   ASCClient.swift                     # @main entry, root AsyncParsableCommand, central error handling
   Config.swift                        # ~/.asc-client/config.json loader, ConfigError
   ClientFactory.swift                 # Creates authenticated AppStoreConnectClient
-  Formatting.swift                    # Shared helpers: Table.print, formatDate, expandPath
+  Formatting.swift                    # Shared helpers: Table.print, ANSI colors, formatFieldName/formatState, formatDate, expandPath
   Aliases.swift                        # Alias storage (~/.asc-client/aliases.json), resolveAlias()
   MediaUpload.swift                   # Media management: upload, download, retry screenshots/previews
   Commands/
@@ -84,6 +84,7 @@ asc-client apps localizations view <bundle-id> [--version X]      # View localiz
 asc-client apps localizations update <bundle-id> [--locale X]     # Update single locale via flags
 asc-client apps localizations import <bundle-id> [--file X]       # Bulk update from JSON file
 asc-client apps localizations export <bundle-id> [--version X]    # Export to JSON file
+asc-client apps review preflight <bundle-id> [--version X]           # Pre-submission checks
 asc-client apps review status <bundle-id> [--version X]             # Review submission status
 asc-client apps create-version <bundle-id> <ver> [--platform X]   # Create new version
 asc-client apps build attach <bundle-id> [--version X]             # Interactively select and attach a build
@@ -154,7 +155,7 @@ asc-client version                                                # Print versio
 3. Register in the appropriate `CommandGroup` in the parent's configuration (see below)
 4. Use `findApp(bundleID:client:)` to resolve bundle ID to app ID
 5. Use `findVersion(appID:versionString:client:)` to resolve version (nil = latest)
-6. Use shared `formatDate()` and `expandPath()` from Formatting.swift
+6. Use shared helpers from Formatting.swift: `formatDate()`, `expandPath()`, `formatState()` for enum display, color helpers (`green()`, `red()`, `yellow()`, `bold()`)
 7. Run `asc-client install-completions` to regenerate completions after adding commands
 
 ### Subcommand grouping
@@ -163,7 +164,7 @@ asc-client version                                                # Print versio
 - **Version**: create-version, build (attach, attach-latest, detach), phased-release, routing-coverage
 - **Info & Content**: app-info (view, update, import, export), localizations (view, update, import, export), media (upload, download, verify)
 - **Configuration**: age-rating, availability, encryption, eula
-- **Review**: review (status, submit, resolve-issues, cancel-submission)
+- **Review**: review (preflight, status, submit, resolve-issues, cancel-submission)
 
 When adding a new subcommand, place it in the appropriate `CommandGroup` or create a new one. Shell completions are alphabetically sorted by zsh — don't try to force custom ordering there.
 
@@ -194,6 +195,13 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
 - `--yes` / `autoConfirm` is incompatible with interactive mode — commands throw `ValidationError` when required options are missing with `--yes`.
 - `enable-capability` filters the type picker to exclude already-enabled capabilities; `disable-capability` only shows enabled ones.
 - `enable-capability` and `disable-capability` offer to regenerate provisioning profiles after changes (delete + recreate with same settings) via `regenerateProfilesIfNeeded()` helper in BundleIDsCommand.swift.
+
+### Output formatting
+- **ANSI colors** — `red()`, `green()`, `yellow()` (orange 208), `bold()` in Formatting.swift. Auto-disabled when stdout is not a terminal (`isatty` check). `stderrRed()` uses a separate `isStderrTerminal` check for error messages.
+- **Colored output conventions** — `green()` for success verbs ("Created", "Updated", "Deleted", etc.), `yellow()` for "Cancelled.", `stderrRed("Error:")` in central error handler. `red()` for failure indicators (e.g. preflight ✗).
+- **`formatFieldName()`** — converts camelCase (`whatsNew` → "What's New") and SCREAMING_SNAKE_CASE (`PREPARE_FOR_SUBMISSION` → "Prepare for Submission") to human-readable titles. Has override map for special cases (URL suffixes, OS names).
+- **`formatState()`** — generic wrapper: `formatFieldName("\(value)")`. Use for any enum/state value displayed to the user (e.g. `.map { formatState($0) }`). Applied globally across all command files for platform, status, type, and state fields.
+- **ANSI-aware Table** — `Table.print` uses `visibleLength()` (strips ANSI codes via regex) and `padToVisible()` for correct column alignment when cells contain colored text.
 
 ### Error handling
 - `ASCClient.main()` overrides the default entry point to catch and format errors centrally.
