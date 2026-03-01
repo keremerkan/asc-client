@@ -221,6 +221,11 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
 - Nested workflows supported (`run-workflow` can call another workflow file) with circular reference detection via `activeWorkflows` path stack
 - `builds upload` sets `lastUploadedBuildVersion` global — subsequent `await-processing` and `build attach-latest` automatically target the just-uploaded build, avoiding race conditions with API propagation delay
 
+### Xcode signing
+- Both `builds archive` and the `.xcarchive` → `.ipa` export pass `-allowProvisioningUpdates` to `xcodebuild`. Without this, `xcodebuild` only uses locally cached provisioning profiles and won't fetch updated ones from the Developer Portal (Xcode GUI does this automatically, CLI does not).
+- Xcode no longer downloads profiles to `~/Library/MobileDevice/Provisioning Profiles/` — with automatic signing it manages them internally. That folder is legacy.
+- `-allowProvisioningUpdates` authenticates via the Apple ID in Xcode > Settings > Accounts. For CI, pass `-authenticationKeyPath`/`-authenticationKeyID`/`-authenticationKeyIssuerID`.
+
 ### Build processing
 - `awaitBuildProcessing()` is a shared helper in `AppsCommand.swift` (alongside `findApp`/`findVersion`) — used by both `builds await-processing` and `build attach-latest`
 - Recently uploaded builds may take a few minutes to appear in the API — the helper polls with a dot-based progress indicator until the build is found
