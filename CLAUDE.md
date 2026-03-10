@@ -41,6 +41,7 @@ Sources/asc-client/
     AliasCommand.swift                # Alias management (add, remove, list) for bundle ID shortcuts
     RunWorkflowCommand.swift          # Sequential command runner from workflow files
     InstallCompletionsCommand.swift   # Shell completion installer with post-processing patches
+    InstallSkillCommand.swift         # Claude Code skill installer
     RateLimitCommand.swift            # API rate limit status check
 ```
 
@@ -144,6 +145,7 @@ asc-client alias remove [name] [-y]                               # Remove an al
 asc-client alias list                                             # List all aliases
 asc-client run-workflow [file] [--yes]                            # Run commands from a workflow file
 asc-client rate-limit                                             # Show API rate limit status
+asc-client install-skill [--uninstall]                            # Install/remove Claude Code skill
 asc-client version                                                # Print version number (also: --version, -v)
 ```
 
