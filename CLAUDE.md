@@ -32,8 +32,8 @@ Sources/asc-client/
     ConfigureCommand.swift            # Interactive credential setup, file permissions
     AppsCommand.swift                 # All app subcommands + findApp/findVersion helpers
     BuildsCommand.swift               # Build subcommands
-    IAPCommand.swift                  # In-app purchase subcommands (read-only)
-    SubCommand.swift                 # Subscription subcommands (read-only)
+    IAPCommand.swift                  # In-app purchase subcommands
+    SubCommand.swift                 # Subscription subcommands
     DevicesCommand.swift              # Device management subcommands + findDevice helper
     CertsCommand.swift                # Signing certificate subcommands + findCertificate helper
     BundleIDsCommand.swift            # Bundle identifier subcommands + findBundleID helper
@@ -41,8 +41,12 @@ Sources/asc-client/
     AliasCommand.swift                # Alias management (add, remove, list) for bundle ID shortcuts
     RunWorkflowCommand.swift          # Sequential command runner from workflow files
     InstallCompletionsCommand.swift   # Shell completion installer with post-processing patches
-    InstallSkillCommand.swift         # Claude Code skill installer
+    InstallSkillCommand.swift         # Claude Code skill installer (fetches from GitHub)
     RateLimitCommand.swift            # API rate limit status check
+skills/
+  asc-client/SKILL.md                # AI coding skill (single source of truth)
+  package.json                        # npm package for npx installer
+  bin/install.js                      # npx installer (fetches SKILL.md from GitHub)
 ```
 
 ## Dependencies
