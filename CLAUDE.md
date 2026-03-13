@@ -193,7 +193,12 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
 - ArgumentParser's generated completion scripts need post-processing:
   - **`#compdef` must be line 1** in zsh completion files — never prepend content before it or compinit won't recognize the file.
   - `patchZshHelpCompletions` / `patchBashHelpCompletions` — fix `asc-client help <tab>` to list subcommands (ArgumentParser generates a broken/empty help function).
-  - `-V` flag removed from `_describe` so zsh sorts subcommands alphabetically.
+  - `-V` flag removed from all `_describe` calls so zsh sorts completions alphabetically.
+- **Argument-level completions** via ArgumentParser's `completion:` parameter:
+  - `.file(extensions:)` — file path completion filtered by extension (e.g. `.json`, `.workflow`, `.ipa`)
+  - `.shellCommand()` — dynamic completions from a shell command (used for alias names from `~/.asc-client/aliases.json`)
+  - Bundle ID arguments use `.shellCommand("grep ...")` to extract alias keys from the aliases JSON file
+  - File arguments use `.file(extensions: ["json"])`, `.file(extensions: ["workflow", "txt"])`, etc.
 
 ### Interactive mode
 - Most provisioning commands (devices, certs, bundle-ids, profiles) support interactive mode — arguments and options are optional.
