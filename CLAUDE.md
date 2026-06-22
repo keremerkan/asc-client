@@ -35,6 +35,7 @@ Sources/ascelerate/
     IAPCommand.swift                  # In-app purchase subcommands
     SubCommand.swift                 # Subscription subcommands
     CustomerReviewsCommand.swift      # Customer reviews + developer responses (list, info, respond, delete-response)
+    AppEventsCommand.swift            # In-app events (list, info, create, update, delete) + scheduling; findAppEvent helper
     DevicesCommand.swift              # Device management subcommands + findDevice helper
     CertsCommand.swift                # Signing certificate subcommands + findCertificate helper
     BundleIDsCommand.swift            # Bundle identifier subcommands + findBundleID helper
@@ -218,6 +219,11 @@ ascelerate profiles reissue [name] [--all] [--all-invalid] [--to-certs X] [--all
 ascelerate alias add [name]                                       # Add/update an alias (interactive app picker if name omitted)
 ascelerate alias remove [name] [-y]                               # Remove an alias (interactive picker if name omitted)
 ascelerate alias list                                             # List all aliases
+ascelerate events list <bundle-id> [--state X]                    # List in-app events
+ascelerate events info <bundle-id> <ref-or-id>                    # Event details + schedules + localizations
+ascelerate events create <bundle-id> --reference-name X [--badge X] [--priority X] [--purpose X] [--deep-link URL] [--primary-locale X] [--territories USA,GBR] [--publish-start X] [--event-start X] [--event-end X] [-y]  # Create event
+ascelerate events update <bundle-id> <ref-or-id> [--reference-name X] [--badge X|NONE] [--priority X] [--purpose X] [--territories X] [--publish-start X] [--event-start X] [--event-end X] [-y]  # Update event/schedule
+ascelerate events delete <bundle-id> <ref-or-id> [-y]            # Delete event
 ascelerate reviews list <bundle-id> [--rating N] [--territory X] [--sort recent|oldest|critical|best] [--unanswered] [--limit N]  # List customer reviews
 ascelerate reviews info <review-id>                               # Full review text + developer response
 ascelerate reviews respond <review-id> --body "X" [-y]           # Publish/replace developer response
@@ -497,20 +503,20 @@ ascelerate screenshot create-helper [-o file] # Generate ScreenshotHelper.swift 
 
 ## Not Yet Implemented
 
-asc-swift exposes the full App Store Connect surface (~185 top-level v1 resources). ascelerate wraps **54** of them — deep coverage where it exists (apps, versions, version/app-info localizations, screenshots/previews, full IAP + subscriptions, provisioning, review submissions, builds, territories/availability, encryption, EULA, age rating, routing coverage, customer reviews + responses), but several whole product areas are untouched. Gap analysis last refreshed against **asc-swift 1.7.0**.
+asc-swift exposes the full App Store Connect surface (~185 top-level v1 resources). ascelerate wraps **55** of them — deep coverage where it exists (apps, versions, version/app-info localizations, screenshots/previews, full IAP + subscriptions, provisioning, review submissions, builds, territories/availability, encryption, EULA, age rating, routing coverage, customer reviews + responses), but several whole product areas are untouched. Gap analysis last refreshed against **asc-swift 1.7.0**.
 
 ### Partially covered
 - **Monetization** — IAP and subscriptions have CRUD + localizations + pricing (per-territory overrides for IAPs, equalize fan-out for subs with increase/decrease safety) + per-product availability + app-level grace period + subscription introductory offers + IAP/sub offer codes (with one-time-use + custom code generation) + subscription promotional offers + group submissions + IAP/sub promotional images + App Review screenshots. Remaining: **win-back offers** (blocked: asc-swift's `WinBackOfferPriceInlineCreate` doesn't expose territory/pricePoint relationships — can't reach the API correctly until the generator is updated. Confirmed still broken as of asc-swift 1.7.0: it remains the only `*PriceInlineCreate` type with just `type`+`id`, while all siblings — IAP/sub price, offer-code, promotional-offer — carry territory/pricePoint. The read-side `WinBackOfferPrice` does expose them, so it's specifically the CreateAPI-generated inline-create schema that's wrong), IAP hosted content (`inAppPurchaseContents`; read-only via API; low value).
 - **Promoted purchases** — read-only (`iap promoted` lists via `apps/{id}/promotedPurchases`); no create/reorder/delete of the promoted-purchase set.
 - **Build upload** — done via `altool` (binary upload); the API-native `buildUploads`/`buildUploadFiles`/`buildBundles` path is intentionally unused.
-- **App metadata** — no commands for app tags, app categories CRUD, custom product pages, app events, app clips, nominations (editorial).
+- **In-app events** — event CRUD (`events list/info/create/update/delete`) + per-territory scheduling implemented. Remaining: localizations (name/short/long description per locale) and media (event-card screenshots + video clips per localization).
+- **App metadata** — no commands for app tags, app categories CRUD, custom product pages, app clips, nominations (editorial).
 
 ### Missing entirely
 Counts are approximate top-level resources from the 1.7.0 surface.
 - **TestFlight / Beta** (~20) — beta groups, testers, tester invitations, beta app/build localizations, beta app review submissions/details, crash logs, feedback (crash + screenshot) submissions, recruitment criteria, prerelease versions, build beta details/notifications. *Largest single gap.*
 - **Game Center** (~38) — achievements, leaderboards (+sets), challenges, activities, matchmaking (queues/rules/teams), groups, details, enabled versions, releases.
 - **Xcode Cloud (CI/CD) + SCM** (~17) — `ci*` (products, workflows, build runs/actions, artifacts, issues, test results, macOS/Xcode versions) and `scm*` (providers, repositories, git refs, pull requests).
-- **In-app events** (4) — app events + localizations/screenshots/video clips. Confirmed well-formed in 1.7.0; ready to implement (mirrors IAP/media patterns).
 - **Custom product pages** (3) — pages + versions + localizations (custom screenshots per page).
 - **A/B experiments** (3) — App Store version experiments + treatments + treatment localizations.
 - **App Clips** (7) — app clips, advanced/default experiences, header/advanced images, app-clip review details.
