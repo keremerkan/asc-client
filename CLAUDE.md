@@ -34,6 +34,7 @@ Sources/ascelerate/
     BuildsCommand.swift               # Build subcommands
     IAPCommand.swift                  # In-app purchase subcommands
     SubCommand.swift                 # Subscription subcommands
+    CustomerReviewsCommand.swift      # Customer reviews + developer responses (list, info, respond, delete-response)
     DevicesCommand.swift              # Device management subcommands + findDevice helper
     CertsCommand.swift                # Signing certificate subcommands + findCertificate helper
     BundleIDsCommand.swift            # Bundle identifier subcommands + findBundleID helper
@@ -217,6 +218,10 @@ ascelerate profiles reissue [name] [--all] [--all-invalid] [--to-certs X] [--all
 ascelerate alias add [name]                                       # Add/update an alias (interactive app picker if name omitted)
 ascelerate alias remove [name] [-y]                               # Remove an alias (interactive picker if name omitted)
 ascelerate alias list                                             # List all aliases
+ascelerate reviews list <bundle-id> [--rating N] [--territory X] [--sort recent|oldest|critical|best] [--unanswered] [--limit N]  # List customer reviews
+ascelerate reviews info <review-id>                               # Full review text + developer response
+ascelerate reviews respond <review-id> --body "X" [-y]           # Publish/replace developer response
+ascelerate reviews delete-response <review-id> [-y]              # Delete developer response
 ascelerate run-workflow [file] [--yes]                            # Run commands from a workflow file
 ascelerate rate-limit                                             # Show API rate limit status
 ascelerate install-skill [--uninstall]                            # Install/remove Claude Code skill
@@ -492,7 +497,7 @@ ascelerate screenshot create-helper [-o file] # Generate ScreenshotHelper.swift 
 
 ## Not Yet Implemented
 
-asc-swift exposes the full App Store Connect surface (~185 top-level v1 resources). ascelerate wraps **52** of them — deep coverage where it exists (apps, versions, version/app-info localizations, screenshots/previews, full IAP + subscriptions, provisioning, review submissions, builds, territories/availability, encryption, EULA, age rating, routing coverage), but several whole product areas are untouched. Gap analysis last refreshed against **asc-swift 1.7.0**.
+asc-swift exposes the full App Store Connect surface (~185 top-level v1 resources). ascelerate wraps **54** of them — deep coverage where it exists (apps, versions, version/app-info localizations, screenshots/previews, full IAP + subscriptions, provisioning, review submissions, builds, territories/availability, encryption, EULA, age rating, routing coverage, customer reviews + responses), but several whole product areas are untouched. Gap analysis last refreshed against **asc-swift 1.7.0**.
 
 ### Partially covered
 - **Monetization** — IAP and subscriptions have CRUD + localizations + pricing (per-territory overrides for IAPs, equalize fan-out for subs with increase/decrease safety) + per-product availability + app-level grace period + subscription introductory offers + IAP/sub offer codes (with one-time-use + custom code generation) + subscription promotional offers + group submissions + IAP/sub promotional images + App Review screenshots. Remaining: **win-back offers** (blocked: asc-swift's `WinBackOfferPriceInlineCreate` doesn't expose territory/pricePoint relationships — can't reach the API correctly until the generator is updated. Confirmed still broken as of asc-swift 1.7.0: it remains the only `*PriceInlineCreate` type with just `type`+`id`, while all siblings — IAP/sub price, offer-code, promotional-offer — carry territory/pricePoint. The read-side `WinBackOfferPrice` does expose them, so it's specifically the CreateAPI-generated inline-create schema that's wrong), IAP hosted content (`inAppPurchaseContents`; read-only via API; low value).
@@ -508,7 +513,6 @@ Counts are approximate top-level resources from the 1.7.0 surface.
 - **In-app events** (4) — app events + localizations/screenshots/video clips. Confirmed well-formed in 1.7.0; ready to implement (mirrors IAP/media patterns).
 - **Custom product pages** (3) — pages + versions + localizations (custom screenshots per page).
 - **A/B experiments** (3) — App Store version experiments + treatments + treatment localizations.
-- **Customer reviews** (2) — customer reviews + review responses (reply from CLI).
 - **App Clips** (7) — app clips, advanced/default experiences, header/advanced images, app-clip review details.
 - **Background Assets** (6) — assets, versions, upload files, app-store/internal/external beta releases.
 - **Alternative distribution / EU** (~8) — `alternativeDistribution*` (domains, keys, packages + variants/deltas/versions) and `marketplace*` (search details, webhooks).
