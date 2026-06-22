@@ -44,7 +44,7 @@ Sources/ascelerate/
     AliasCommand.swift                # Alias management (add, remove, list) for bundle ID shortcuts
     RunWorkflowCommand.swift          # Sequential command runner from workflow files
     InstallCompletionsCommand.swift   # Shell completion installer with post-processing patches
-    InstallSkillCommand.swift         # Claude Code skill installer (fetches from GitHub)
+    InstallSkillCommand.swift         # Multi-agent skill installer (Claude Code/Cursor/Windsurf/Copilot; fetches from GitHub)
     RateLimitCommand.swift            # API rate limit status check
 skills/
   ascelerate/SKILL.md                # AI coding skill (single source of truth)
@@ -256,7 +256,7 @@ ascelerate reviews respond <review-id> --body "X" [-y]           # Publish/repla
 ascelerate reviews delete-response <review-id> [-y]              # Delete developer response
 ascelerate run-workflow [file] [--yes]                            # Run commands from a workflow file
 ascelerate rate-limit                                             # Show API rate limit status
-ascelerate install-skill [--uninstall]                            # Install/remove Claude Code skill
+ascelerate install-skill [--all] [--uninstall]                    # Install/update the skill for detected AI agents (Claude Code/Cursor/Windsurf; +Copilot with --all)
 ascelerate screenshot [--languages en-US,tr-TR]                   # Capture screenshots (optional language subset override)
 ascelerate screenshot init                                        # Create ascelerate/screenshot.yml + ScreenshotHelper.swift
 ascelerate screenshot create-helper [-o file]                     # Generate UITest helper file
@@ -295,7 +295,7 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
 - **No `version:` on `CommandConfiguration`** — intentionally omitted. ArgumentParser leaks a root `--version` flag into every subcommand's completion function, which conflicts with subcommands that define their own `--version` option (e.g. `builds list --version`, `apps review status --version`).
 - Version is stored as `static let appVersion` in `ASC.swift`.
 - `ascelerate version` subcommand prints just the version number. `--version` and `-v` are intercepted in `main()` before ArgumentParser and produce the same output.
-- `install-completions` stamps `# ascelerate vX.Y.Z` into completion scripts (after `#compdef` line for zsh) and `install-skill` stamps `<!-- ascelerate vX.Y.Z -->` into the installed skill file.
+- `install-completions` stamps `# ascelerate vX.Y.Z` into completion scripts (after `#compdef` line for zsh) and `install-skill` stamps `<!-- ascelerate vX.Y.Z -->` into each installed skill file (across all targeted agents). The update-check (`skillVersionDetail()`) scans every installed agent path and only flags **stamped** skills (npx-installed ones are unstamped and skipped, so they don't false-positive). `install-skill` targets agents that are detected (`~/.claude`, `~/.cursor`, `~/.windsurf`) or already have the skill; `--all` forces all four (incl. Copilot, which has no detectable dir).
 - `checkForUpdates()` (non-interactive, API commands) and `checkForUpdatesInteractively()` (bare invocation) detect outdated completions and/or skill, offering a single Y/n prompt or NOTE line.
 - Both `install-skill` and the npx installer (`npx ascelerate-skill`) fetch `SKILL.md` from GitHub — the skill content is NOT embedded in the binary. `skills/ascelerate/SKILL.md` in the repo is the single source of truth.
 
