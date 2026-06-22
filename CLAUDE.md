@@ -236,6 +236,9 @@ ascelerate product-pages info <bundle-id> <name-or-id>            # Page version
 ascelerate product-pages create <bundle-id> --name X --locale X [--promotional-text X] [-y]  # Create page (compound: version + first locale)
 ascelerate product-pages update <bundle-id> <name-or-id> [--name X] [--visible true|false] [-y]  # Rename / toggle visibility
 ascelerate product-pages delete <bundle-id> <name-or-id> [-y]    # Delete page
+ascelerate product-pages localizations view <bundle-id> <name-or-id>    # View page localizations
+ascelerate product-pages localizations export <bundle-id> <name-or-id> [--output X]  # Export to JSON
+ascelerate product-pages localizations import <bundle-id> <name-or-id> [--file X] [--verbose] [-y]  # Import promotional text from JSON
 ascelerate reviews list <bundle-id> [--rating N] [--territory X] [--sort recent|oldest|critical|best] [--unanswered] [--limit N]  # List customer reviews
 ascelerate reviews info <review-id>                               # Full review text + developer response
 ascelerate reviews respond <review-id> --body "X" [-y]           # Publish/replace developer response
@@ -521,7 +524,7 @@ asc-swift exposes the full App Store Connect surface (~185 top-level v1 resource
 - **Monetization** — IAP and subscriptions have CRUD + localizations + pricing (per-territory overrides for IAPs, equalize fan-out for subs with increase/decrease safety) + per-product availability + app-level grace period + subscription introductory offers + IAP/sub offer codes (with one-time-use + custom code generation) + subscription promotional offers + group submissions + IAP/sub promotional images + App Review screenshots. Remaining: **win-back offers** (blocked: asc-swift's `WinBackOfferPriceInlineCreate` doesn't expose territory/pricePoint relationships — can't reach the API correctly until the generator is updated. Confirmed still broken as of asc-swift 1.7.0: it remains the only `*PriceInlineCreate` type with just `type`+`id`, while all siblings — IAP/sub price, offer-code, promotional-offer — carry territory/pricePoint. The read-side `WinBackOfferPrice` does expose them, so it's specifically the CreateAPI-generated inline-create schema that's wrong), IAP hosted content (`inAppPurchaseContents`; read-only via API; low value).
 - **Promoted purchases** — read-only (`iap promoted` lists via `apps/{id}/promotedPurchases`); no create/reorder/delete of the promoted-purchase set.
 - **Build upload** — done via `altool` (binary upload); the API-native `buildUploads`/`buildUploadFiles`/`buildBundles` path is intentionally unused.
-- **Custom product pages** — page CRUD (`product-pages list/info/create/update/delete`; create is a compound version+localization request using `${local-id}` inline references). Remaining: localizations (promotional text + search keywords per locale) and screenshot/preview sets per localization.
+- **Custom product pages** — page CRUD (`product-pages list/info/create/update/delete`; create is a compound version+localization request using `${local-id}` inline references) + localizations (`product-pages localizations view/export/import`; promotional text per locale). Remaining: per-locale search-keyword linkages and screenshot/preview sets.
 - **App metadata** — no commands for app tags, app categories CRUD, app clips, nominations (editorial).
 
 ### Missing entirely
