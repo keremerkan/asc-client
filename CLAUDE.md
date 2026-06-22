@@ -224,6 +224,9 @@ ascelerate events info <bundle-id> <ref-or-id>                    # Event detail
 ascelerate events create <bundle-id> --reference-name X [--badge X] [--priority X] [--purpose X] [--deep-link URL] [--primary-locale X] [--territories USA,GBR] [--publish-start X] [--event-start X] [--event-end X] [-y]  # Create event
 ascelerate events update <bundle-id> <ref-or-id> [--reference-name X] [--badge X|NONE] [--priority X] [--purpose X] [--territories X] [--publish-start X] [--event-start X] [--event-end X] [-y]  # Update event/schedule
 ascelerate events delete <bundle-id> <ref-or-id> [-y]            # Delete event
+ascelerate events localizations view <bundle-id> <ref-or-id>     # View event localizations
+ascelerate events localizations export <bundle-id> <ref-or-id> [--output X]  # Export event localizations to JSON
+ascelerate events localizations import <bundle-id> <ref-or-id> [--file X] [--verbose] [-y]  # Import event localizations from JSON
 ascelerate reviews list <bundle-id> [--rating N] [--territory X] [--sort recent|oldest|critical|best] [--unanswered] [--limit N]  # List customer reviews
 ascelerate reviews info <review-id>                               # Full review text + developer response
 ascelerate reviews respond <review-id> --body "X" [-y]           # Publish/replace developer response
@@ -509,7 +512,7 @@ asc-swift exposes the full App Store Connect surface (~185 top-level v1 resource
 - **Monetization** — IAP and subscriptions have CRUD + localizations + pricing (per-territory overrides for IAPs, equalize fan-out for subs with increase/decrease safety) + per-product availability + app-level grace period + subscription introductory offers + IAP/sub offer codes (with one-time-use + custom code generation) + subscription promotional offers + group submissions + IAP/sub promotional images + App Review screenshots. Remaining: **win-back offers** (blocked: asc-swift's `WinBackOfferPriceInlineCreate` doesn't expose territory/pricePoint relationships — can't reach the API correctly until the generator is updated. Confirmed still broken as of asc-swift 1.7.0: it remains the only `*PriceInlineCreate` type with just `type`+`id`, while all siblings — IAP/sub price, offer-code, promotional-offer — carry territory/pricePoint. The read-side `WinBackOfferPrice` does expose them, so it's specifically the CreateAPI-generated inline-create schema that's wrong), IAP hosted content (`inAppPurchaseContents`; read-only via API; low value).
 - **Promoted purchases** — read-only (`iap promoted` lists via `apps/{id}/promotedPurchases`); no create/reorder/delete of the promoted-purchase set.
 - **Build upload** — done via `altool` (binary upload); the API-native `buildUploads`/`buildUploadFiles`/`buildBundles` path is intentionally unused.
-- **In-app events** — event CRUD (`events list/info/create/update/delete`) + per-territory scheduling implemented. Remaining: localizations (name/short/long description per locale) and media (event-card screenshots + video clips per localization).
+- **In-app events** — event CRUD (`events list/info/create/update/delete`) + per-territory scheduling + localizations (`events localizations view/export/import`; name/short/long description per locale) implemented. Remaining: media (event-card screenshots + video clips per localization).
 - **App metadata** — no commands for app tags, app categories CRUD, custom product pages, app clips, nominations (editorial).
 
 ### Missing entirely
