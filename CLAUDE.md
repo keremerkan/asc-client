@@ -107,6 +107,7 @@ ascelerate apps routing-coverage <bundle-id> [--file X]           # View/upload 
 ascelerate apps review submit <bundle-id> [--version X]            # Submit version for App Review
 ascelerate apps review resolve-issues <bundle-id>                 # Mark rejected items as resolved
 ascelerate apps review cancel-submission <bundle-id>              # Cancel an active review submission
+ascelerate apps review info <bundle-id> [--version X] [--contact-first-name X] [--contact-last-name X] [--contact-phone X] [--contact-email X] [--demo-account-name X] [--demo-account-password X] [--demo-account-required true|false] [--notes X] [-y]  # View/update App Review Information
 ascelerate apps media upload <bundle-id> [folder] [--version X] [--replace]  # Upload screenshots/previews
 ascelerate apps media download <bundle-id> [--folder X] [--version X]        # Download screenshots/previews
 ascelerate apps media verify <bundle-id> [--version X] [folder]              # Check media status, retry stuck
@@ -272,7 +273,7 @@ ascelerate version                                                # Print versio
 - **Version**: create-version, build (attach, attach-latest, detach), phased-release, routing-coverage
 - **Info & Content**: app-info (view, update, import, export, age-rating (view, export, import)), localizations (view, update, import, export), media (upload, download, verify)
 - **Configuration**: availability, encryption, eula
-- **Review**: review (preflight, status, submit, resolve-issues, cancel-submission)
+- **Review**: review (preflight, status, submit, resolve-issues, cancel-submission, info)
 
 When adding a new subcommand, place it in the appropriate `CommandGroup` or create a new one. Shell completions are alphabetically sorted by zsh — don't try to force custom ordering there.
 
@@ -527,6 +528,7 @@ asc-swift exposes the full App Store Connect surface (~185 top-level v1 resource
 - **Monetization** — IAP and subscriptions have CRUD + localizations + pricing (per-territory overrides for IAPs, equalize fan-out for subs with increase/decrease safety) + per-product availability + app-level grace period + subscription introductory offers + IAP/sub offer codes (with one-time-use + custom code generation) + subscription promotional offers + group submissions + IAP/sub promotional images + App Review screenshots. Remaining: **win-back offers** (blocked: asc-swift's `WinBackOfferPriceInlineCreate` doesn't expose territory/pricePoint relationships — can't reach the API correctly until the generator is updated. Confirmed still broken as of asc-swift 1.7.0: it remains the only `*PriceInlineCreate` type with just `type`+`id`, while all siblings — IAP/sub price, offer-code, promotional-offer — carry territory/pricePoint. The read-side `WinBackOfferPrice` does expose them, so it's specifically the CreateAPI-generated inline-create schema that's wrong), IAP hosted content (`inAppPurchaseContents`; read-only via API; low value).
 - **Promoted purchases** — read-only (`iap promoted` lists via `apps/{id}/promotedPurchases`); no create/reorder/delete of the promoted-purchase set.
 - **Build upload** — done via `altool` (binary upload); the API-native `buildUploads`/`buildUploadFiles`/`buildBundles` path is intentionally unused.
+- **App Review Information** — contact / demo account / notes are viewable and editable (`apps review info`; per-version upsert of `appStoreReviewDetails`). Remaining: review attachments (`appStoreReviewAttachments`; file uploads to the review).
 - **Custom product pages** — page CRUD (`product-pages list/info/create/update/delete`; create is a compound version+localization request using `${local-id}` inline references) + localizations (`product-pages localizations view/export/import`; promotional text per locale) + media (`product-pages media list/upload/delete`; per-locale screenshot sets by display type and app preview sets). Remaining: **per-locale search-keyword linkages** (blocked, same class of asc-swift codegen gap as win-back offers — as of 1.7.0 the `AppKeyword` entity exposes no attributes, only `type`+`id`+`links`, so the keyword *text* is unavailable, and there's no endpoint to create keywords. The relationship endpoints exist — `appCustomProductPageLocalizations/{id}/relationships/searchKeywords` GET/POST/DELETE link keyword IDs to a localization, sourced from the read-only app pool `apps/{id}/searchKeywords` — but a command could only shuffle opaque, undisplayable IDs. Not shippable until `AppKeyword` exposes the keyword text).
 - **App metadata** — no commands for app tags, app categories CRUD, app clips, nominations (editorial).
 
