@@ -492,19 +492,32 @@ ascelerate screenshot create-helper [-o file] # Generate ScreenshotHelper.swift 
 
 ## Not Yet Implemented
 
-asc-swift exposes the full App Store Connect surface (~1076 generated path files). ascelerate currently wraps a fraction of it. Major gaps:
+asc-swift exposes the full App Store Connect surface (~185 top-level v1 resources). ascelerate wraps **52** of them — deep coverage where it exists (apps, versions, version/app-info localizations, screenshots/previews, full IAP + subscriptions, provisioning, review submissions, builds, territories/availability, encryption, EULA, age rating, routing coverage), but several whole product areas are untouched. Gap analysis last refreshed against **asc-swift 1.7.0**.
 
 ### Partially covered
-- **Monetization** — IAP and subscriptions have CRUD + localizations + pricing (per-territory overrides for IAPs, equalize fan-out for subs with increase/decrease safety) + per-product availability + app-level grace period + subscription introductory offers + IAP/sub offer codes (with one-time-use + custom code generation) + subscription promotional offers + group submissions + IAP/sub promotional images + App Review screenshots. Remaining: **win-back offers** (blocked: asc-swift's `WinBackOfferPriceInlineCreate` doesn't expose territory/pricePoint relationships — can't reach the API correctly until the generator is updated. Confirmed still broken as of asc-swift 1.7.0: it remains the only `*PriceInlineCreate` type with just `type`+`id`, while all siblings — IAP/sub price, offer-code, promotional-offer — carry territory/pricePoint. The read-side `WinBackOfferPrice` does expose them, so it's specifically the CreateAPI-generated inline-create schema that's wrong), IAP hosted content (read-only via API; low value).
-- **App metadata** — no commands for app tags, app categories CRUD, custom product pages, app events, app clips.
+- **Monetization** — IAP and subscriptions have CRUD + localizations + pricing (per-territory overrides for IAPs, equalize fan-out for subs with increase/decrease safety) + per-product availability + app-level grace period + subscription introductory offers + IAP/sub offer codes (with one-time-use + custom code generation) + subscription promotional offers + group submissions + IAP/sub promotional images + App Review screenshots. Remaining: **win-back offers** (blocked: asc-swift's `WinBackOfferPriceInlineCreate` doesn't expose territory/pricePoint relationships — can't reach the API correctly until the generator is updated. Confirmed still broken as of asc-swift 1.7.0: it remains the only `*PriceInlineCreate` type with just `type`+`id`, while all siblings — IAP/sub price, offer-code, promotional-offer — carry territory/pricePoint. The read-side `WinBackOfferPrice` does expose them, so it's specifically the CreateAPI-generated inline-create schema that's wrong), IAP hosted content (`inAppPurchaseContents`; read-only via API; low value).
+- **Promoted purchases** — read-only (`iap promoted` lists via `apps/{id}/promotedPurchases`); no create/reorder/delete of the promoted-purchase set.
+- **Build upload** — done via `altool` (binary upload); the API-native `buildUploads`/`buildUploadFiles`/`buildBundles` path is intentionally unused.
+- **App metadata** — no commands for app tags, app categories CRUD, custom product pages, app events, app clips, nominations (editorial).
 
 ### Missing entirely
-- **TestFlight** — beta groups, beta testers, tester invitations, beta app/build localizations, beta app review submissions/details, crash logs, feedback submissions, recruitment criteria.
-- **Game Center** (~40 resources) — achievements, leaderboards, leaderboard sets, challenges, matchmaking, groups, details, enabled versions.
-- **Customer feedback** — customer reviews, review responses.
-- **Analytics** — analytics reports, report requests/instances/segments.
-- **A/B experiments** — App Store version experiments.
-- **Niche** — accessibility declarations, background assets, alternative distribution, marketplace webhooks, CI/CD workflows (Xcode Cloud), source control integration, finance/sales reports, user management, Android-to-iOS app mapping.
+Counts are approximate top-level resources from the 1.7.0 surface.
+- **TestFlight / Beta** (~20) — beta groups, testers, tester invitations, beta app/build localizations, beta app review submissions/details, crash logs, feedback (crash + screenshot) submissions, recruitment criteria, prerelease versions, build beta details/notifications. *Largest single gap.*
+- **Game Center** (~38) — achievements, leaderboards (+sets), challenges, activities, matchmaking (queues/rules/teams), groups, details, enabled versions, releases.
+- **Xcode Cloud (CI/CD) + SCM** (~17) — `ci*` (products, workflows, build runs/actions, artifacts, issues, test results, macOS/Xcode versions) and `scm*` (providers, repositories, git refs, pull requests).
+- **In-app events** (4) — app events + localizations/screenshots/video clips. Confirmed well-formed in 1.7.0; ready to implement (mirrors IAP/media patterns).
+- **Custom product pages** (3) — pages + versions + localizations (custom screenshots per page).
+- **A/B experiments** (3) — App Store version experiments + treatments + treatment localizations.
+- **Customer reviews** (2) — customer reviews + review responses (reply from CLI).
+- **App Clips** (7) — app clips, advanced/default experiences, header/advanced images, app-clip review details.
+- **Background Assets** (6) — assets, versions, upload files, app-store/internal/external beta releases.
+- **Alternative distribution / EU** (~8) — `alternativeDistribution*` (domains, keys, packages + variants/deltas/versions) and `marketplace*` (search details, webhooks).
+- **Webhooks** (3) — webhooks + deliveries + pings (ASC event notifications; newer).
+- **Analytics / Sales / Finance** (~7) — analytics reports (+requests/instances/segments), sales reports, finance reports, diagnostic signatures.
+- **Users & access** (3) — users, user invitations, actors (team management).
+- **App-level pricing & release** — `appPriceSchedules` (paid-app pricing), `subscriptionPlanAvailabilities`, `appStoreVersionPromotions`, `appStoreVersionReleaseRequests`, `endAppAvailabilityPreOrders`.
+- **Provisioning extras** — `merchantIDs` (Apple Pay), `passTypeIDs` (Wallet).
+- **Niche** — accessibility declarations, `appEncryptionDeclarationDocuments`, Android-to-iOS app mapping.
 
 ## Release build note
 
