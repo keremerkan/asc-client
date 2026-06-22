@@ -35,7 +35,7 @@ Sources/ascelerate/
     IAPCommand.swift                  # In-app purchase subcommands
     SubCommand.swift                 # Subscription subcommands
     CustomerReviewsCommand.swift      # Customer reviews + developer responses (list, info, respond, delete-response)
-    AppEventsCommand.swift            # In-app events (list, info, create, update, delete) + scheduling; findAppEvent helper
+    AppEventsCommand.swift            # In-app events: CRUD + scheduling + localizations + media (screenshots/video clips); findAppEvent helper
     DevicesCommand.swift              # Device management subcommands + findDevice helper
     CertsCommand.swift                # Signing certificate subcommands + findCertificate helper
     BundleIDsCommand.swift            # Bundle identifier subcommands + findBundleID helper
@@ -227,6 +227,9 @@ ascelerate events delete <bundle-id> <ref-or-id> [-y]            # Delete event
 ascelerate events localizations view <bundle-id> <ref-or-id>     # View event localizations
 ascelerate events localizations export <bundle-id> <ref-or-id> [--output X]  # Export event localizations to JSON
 ascelerate events localizations import <bundle-id> <ref-or-id> [--file X] [--verbose] [-y]  # Import event localizations from JSON
+ascelerate events media list <bundle-id> <ref-or-id>             # List event card screenshots + video clips
+ascelerate events media upload <bundle-id> <ref-or-id> --locale X --asset-type EVENT_CARD|EVENT_DETAILS_PAGE [--preview-frame X] <file> [-y]  # Upload screenshot/video clip
+ascelerate events media delete <bundle-id> <ref-or-id> <media-id> [-y]  # Delete a screenshot or video clip
 ascelerate reviews list <bundle-id> [--rating N] [--territory X] [--sort recent|oldest|critical|best] [--unanswered] [--limit N]  # List customer reviews
 ascelerate reviews info <review-id>                               # Full review text + developer response
 ascelerate reviews respond <review-id> --body "X" [-y]           # Publish/replace developer response
@@ -506,13 +509,12 @@ ascelerate screenshot create-helper [-o file] # Generate ScreenshotHelper.swift 
 
 ## Not Yet Implemented
 
-asc-swift exposes the full App Store Connect surface (~185 top-level v1 resources). ascelerate wraps **55** of them — deep coverage where it exists (apps, versions, version/app-info localizations, screenshots/previews, full IAP + subscriptions, provisioning, review submissions, builds, territories/availability, encryption, EULA, age rating, routing coverage, customer reviews + responses), but several whole product areas are untouched. Gap analysis last refreshed against **asc-swift 1.7.0**.
+asc-swift exposes the full App Store Connect surface (~185 top-level v1 resources). ascelerate wraps **58** of them — deep coverage where it exists (apps, versions, version/app-info localizations, screenshots/previews, full IAP + subscriptions, provisioning, review submissions, builds, territories/availability, encryption, EULA, age rating, routing coverage, customer reviews + responses, in-app events incl. localizations + media), but several whole product areas are untouched. Gap analysis last refreshed against **asc-swift 1.7.0**.
 
 ### Partially covered
 - **Monetization** — IAP and subscriptions have CRUD + localizations + pricing (per-territory overrides for IAPs, equalize fan-out for subs with increase/decrease safety) + per-product availability + app-level grace period + subscription introductory offers + IAP/sub offer codes (with one-time-use + custom code generation) + subscription promotional offers + group submissions + IAP/sub promotional images + App Review screenshots. Remaining: **win-back offers** (blocked: asc-swift's `WinBackOfferPriceInlineCreate` doesn't expose territory/pricePoint relationships — can't reach the API correctly until the generator is updated. Confirmed still broken as of asc-swift 1.7.0: it remains the only `*PriceInlineCreate` type with just `type`+`id`, while all siblings — IAP/sub price, offer-code, promotional-offer — carry territory/pricePoint. The read-side `WinBackOfferPrice` does expose them, so it's specifically the CreateAPI-generated inline-create schema that's wrong), IAP hosted content (`inAppPurchaseContents`; read-only via API; low value).
 - **Promoted purchases** — read-only (`iap promoted` lists via `apps/{id}/promotedPurchases`); no create/reorder/delete of the promoted-purchase set.
 - **Build upload** — done via `altool` (binary upload); the API-native `buildUploads`/`buildUploadFiles`/`buildBundles` path is intentionally unused.
-- **In-app events** — event CRUD (`events list/info/create/update/delete`) + per-territory scheduling + localizations (`events localizations view/export/import`; name/short/long description per locale) implemented. Remaining: media (event-card screenshots + video clips per localization).
 - **App metadata** — no commands for app tags, app categories CRUD, custom product pages, app clips, nominations (editorial).
 
 ### Missing entirely
