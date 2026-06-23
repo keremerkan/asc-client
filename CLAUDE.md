@@ -28,6 +28,7 @@ Sources/ascelerate/
   Formatting.swift                    # Shared helpers: Table.print, ANSI colors, formatFieldName/formatState, formatDate, expandPath
   Aliases.swift                        # Alias storage (~/.ascelerate/aliases.json), resolveAlias()
   MediaUpload.swift                   # Media management: upload, download, retry screenshots/previews
+  Reports.swift                       # Shared report plumbing: gunzip (gzip -dc), TSV parse, vendor-number resolve, sales/finance summarizers
   Commands/
     ConfigureCommand.swift            # Interactive credential setup, file permissions
     AppsCommand.swift                 # All app subcommands + findApp/findVersion helpers
@@ -46,6 +47,7 @@ Sources/ascelerate/
     InstallCompletionsCommand.swift   # Shell completion installer with post-processing patches
     InstallSkillCommand.swift         # Multi-agent skill installer (Claude Code/Cursor/Windsurf/Copilot; fetches from GitHub)
     RateLimitCommand.swift            # API rate limit status check
+    ReportsCommand.swift              # Sales/Finance/Analytics report downloads (reports sales/finance/analytics)
 skills/
   ascelerate/SKILL.md                # AI coding skill (single source of truth)
   package.json                        # npm package for npx installer
@@ -73,11 +75,13 @@ Config file at `~/.ascelerate/config.json`:
 {
     "keyId": "KEY_ID",
     "issuerId": "ISSUER_ID",
-    "privateKeyPath": "/Users/.../.ascelerate/AuthKey_XXXXXXXXXX.p8"
+    "privateKeyPath": "/Users/.../.ascelerate/AuthKey_XXXXXXXXXX.p8",
+    "vendorNumber": "80012345"
 }
 ```
 
 - `configure` command copies the .p8 file into `~/.ascelerate/` and writes the config
+- `vendorNumber` is **optional** — only the `reports sales`/`reports finance` commands use it (App Store Connect → Payments and Financial Reports). `configure` prompts for it (skippable); `--vendor-number` overrides per-invocation. Resolved by `Reports.resolveVendorNumber()`.
 - File permissions set to 700 (dir) and 600 (files) — owner-only access
 - JWT tokens use ES256 (P256) signing, 20-minute expiry, auto-renewed by asc-swift
 - Private key loaded via `JWT.PrivateKey(contentsOf: URL(fileURLWithPath: path))`
@@ -254,6 +258,9 @@ ascelerate reviews list <bundle-id> [--rating N] [--territory X] [--sort recent|
 ascelerate reviews info <review-id>                               # Full review text + developer response
 ascelerate reviews respond <review-id> --body "X" [-y]           # Publish/replace developer response
 ascelerate reviews delete-response <review-id> [-y]              # Delete developer response
+ascelerate reports sales [--frequency DAILY|WEEKLY|MONTHLY|YEARLY] [--date X] [--type SALES] [--sub-type SUMMARY] [--bundle-id X] [--vendor-number X] [--output X] [--raw]  # Sales & Trends report (units/downloads); summarizes units by title/product type
+ascelerate reports finance --date YYYY-MM --region US [--type FINANCIAL|FINANCE_DETAIL] [--vendor-number X] [--output X] [--raw]  # Financial report (units + partner proceeds) for a fiscal period
+ascelerate reports analytics <bundle-id> [--category APP_STORE_ENGAGEMENT|APP_USAGE|COMMERCE|FRAMEWORK_USAGE|PERFORMANCE] [--granularity DAILY|WEEKLY|MONTHLY] [--report-name X] [--processing-date X] [--ongoing] [--output X] [-y]  # App Analytics report (downloads, impressions, sessions); reuses/creates a report request, downloads segments
 ascelerate run-workflow [file] [--yes]                            # Run commands from a workflow file
 ascelerate rate-limit                                             # Show API rate limit status
 ascelerate install-skill [--all] [--uninstall]                    # Install/update the skill for detected AI agents (Claude Code/Cursor/Windsurf; +Copilot with --all)
@@ -354,6 +361,15 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
 - `awaitBuildProcessing()` is a shared helper in `AppsCommand.swift` (alongside `findApp`/`findVersion`) — used by both `builds await-processing` and `build attach-latest`
 - Recently uploaded builds may take a few minutes to appear in the API — the helper polls with a dot-based progress indicator until the build is found
 - `build attach-latest` prompts to wait if the latest build is still `PROCESSING`; with `--yes` it waits automatically
+
+### Reports (`reports sales` / `reports finance` / `reports analytics`)
+- **Sales/Finance endpoints return `Request<Data>` (a gzipped TSV body), NOT JSON.** `client.send` would try to JSON-decode it and fail — use `client.download(request)` (returns a temp file URL) instead. `Reports.fetchReportText()` wraps this: download → `gzip -dc` (via `Process`, no new dependency; the `Compression` framework only does raw zlib, not gzip-with-header) → UTF-8 text. The body is `application/a-gzip`, so URLSession does NOT auto-decompress it.
+- **Vendor number** is required for sales/finance (not analytics). Stored optionally in `config.json` (`vendorNumber`), overridable via `--vendor-number`, resolved by `Reports.resolveVendorNumber()`.
+- **Sales report summary** groups `Units` by (Title, SKU, Product Type Identifier); `--bundle-id` filters rows by the `Apple Identifier` column (== app's numeric ID from `findApp`). `--raw`/`--output` emit the unparsed TSV. Default `--date` is the most recent completed period in Apple's reporting time zone (`Reports.defaultSalesDate`); weekly keys off the Sunday ending the week.
+- **Finance report `--date` is a *fiscal* period** `YYYY-MM` (MM = Apple fiscal period 01–12, not a calendar month); `--region` is required. Summary sums `Quantity` by title and `Extended Partner Share` by currency, skipping footer/total lines (non-numeric `Quantity`).
+- **A 404 from a download is surfaced via `Reports.notFoundHint()`** — the download path doesn't parse the JSON error body, so a bare "HTTP 404" is rewritten to "report not available yet / no activity; try an earlier date".
+- **Analytics is async + multi-step**: find-or-create an `analyticsReportRequest` for the app (`apps/{id}/analyticsReportRequests` filtered by accessType; reuse one not `isStoppedDueToInactivity`, else POST — prompts first, never auto-creates without `-y`) → list `reports` by `--category` (picker if multiple, or `--report-name`) → list `instances` by `--granularity` (picks latest `processingDate`, or `--processing-date`) → page `segments` → download each segment's `attributes.url` (presigned, gzipped) via plain `URLSession`, gunzip, save one CSV per segment to `--output` dir. A freshly created snapshot has no instances yet — the command tells the user to re-run later.
+- Deeply-nested generated `*CreateRequest` inits don't infer through chained `.init` — spell out the full types (see the `AnalyticsReportRequestCreateRequest` construction with a `typealias Body`).
 
 ### API calls
 - **`Certificate` type is ambiguous** — both `AppStoreAPI.Certificate` and `X509.Certificate` exist. In `CertsCommand.swift` (which imports both), use `AppStoreAPI.Certificate` explicitly for API response types.
@@ -529,7 +545,7 @@ ascelerate screenshot create-helper [-o file] # Generate ScreenshotHelper.swift 
 
 ## Not Yet Implemented
 
-asc-swift exposes the full App Store Connect surface (~185 top-level v1 resources). ascelerate wraps **64** of them — deep coverage where it exists (apps, versions, version/app-info localizations, screenshots/previews, full IAP + subscriptions incl. promoted-purchase CRUD, provisioning, review submissions + App Review Information (details + attachments), builds, territories/availability, encryption, EULA, age rating, routing coverage, customer reviews + responses, in-app events incl. localizations + media), but several whole product areas are untouched. Gap analysis last refreshed against **asc-swift 1.7.0**.
+asc-swift exposes the full App Store Connect surface (~185 top-level v1 resources). ascelerate wraps **67** of them — deep coverage where it exists (apps, versions, version/app-info localizations, screenshots/previews, full IAP + subscriptions incl. promoted-purchase CRUD, provisioning, review submissions + App Review Information (details + attachments), builds, territories/availability, encryption, EULA, age rating, routing coverage, customer reviews + responses, in-app events incl. localizations + media), but several whole product areas are untouched. Gap analysis last refreshed against **asc-swift 1.7.0**.
 
 ### Partially covered
 - **Monetization** — IAP and subscriptions have CRUD + localizations + pricing (per-territory overrides for IAPs, equalize fan-out for subs with increase/decrease safety) + per-product availability + app-level grace period + subscription introductory offers + IAP/sub offer codes (with one-time-use + custom code generation) + subscription promotional offers + group submissions + IAP/sub promotional images + App Review screenshots. Remaining: **win-back offers** (blocked: asc-swift's `WinBackOfferPriceInlineCreate` doesn't expose territory/pricePoint relationships — can't reach the API correctly until the generator is updated. Confirmed still broken as of asc-swift 1.7.0: it remains the only `*PriceInlineCreate` type with just `type`+`id`, while all siblings — IAP/sub price, offer-code, promotional-offer — carry territory/pricePoint. The read-side `WinBackOfferPrice` does expose them, so it's specifically the CreateAPI-generated inline-create schema that's wrong), IAP hosted content (`inAppPurchaseContents`; read-only via API; low value).
@@ -547,7 +563,7 @@ Counts are approximate top-level resources from the 1.7.0 surface.
 - **Background Assets** (6) — assets, versions, upload files, app-store/internal/external beta releases.
 - **Alternative distribution / EU** (~8) — `alternativeDistribution*` (domains, keys, packages + variants/deltas/versions) and `marketplace*` (search details, webhooks).
 - **Webhooks** (3) — webhooks + deliveries + pings (ASC event notifications; newer).
-- **Analytics / Sales / Finance** (~7) — analytics reports (+requests/instances/segments), sales reports, finance reports, diagnostic signatures.
+- **Analytics / Sales / Finance** — **covered** via `reports sales/finance/analytics` (Sales & Trends, Financial, and App Analytics reports; gzipped TSV/CSV downloaded + summarized). Remaining: analytics-report `segments`/`instances` are exposed only through the `analytics` flow (no standalone commands), and **diagnostic signatures** (`diagnosticSignatures`) are untouched.
 - **Users & access** (3) — users, user invitations, actors (team management).
 - **App-level pricing & release** — `appPriceSchedules` (paid-app pricing), `subscriptionPlanAvailabilities`, `appStoreVersionPromotions`, `appStoreVersionReleaseRequests`, `endAppAvailabilityPreOrders`.
 - **Provisioning extras** — `merchantIDs` (Apple Pay), `passTypeIDs` (Wallet).
