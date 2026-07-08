@@ -28,6 +28,8 @@ Sources/ascelerate/
   Formatting.swift                    # Shared helpers: Table.print, ANSI colors, formatFieldName/formatState, formatDate, expandPath
   Aliases.swift                        # Alias storage (~/.ascelerate/aliases.json), resolveAlias()
   MediaUpload.swift                   # Media management: upload, download, retry screenshots/previews
+  ProductAvailability.swift           # Shared driver for iap/sub availability commands
+  ProductMedia.swift                  # Shared drivers for iap/sub images, review-screenshot, offer-code view-codes
   Reports.swift                       # Shared report plumbing: gunzip (gzip -dc), TSV parse, vendor-number resolve, sales/finance summarizers
   Commands/
     ConfigureCommand.swift            # Interactive credential setup, file permissions
@@ -93,31 +95,33 @@ ascelerate configure                                              # Interactive 
 ascelerate apps list                                              # List all apps
 ascelerate apps info <bundle-id>                                  # App details
 ascelerate apps versions <bundle-id>                              # List App Store versions
-ascelerate apps localizations view <bundle-id> [--version X]      # View localizations
-ascelerate apps localizations update <bundle-id> [--locale X]     # Update single locale via flags
-ascelerate apps localizations import <bundle-id> [--file X]       # Bulk update from JSON file
-ascelerate apps localizations export <bundle-id> [--version X]    # Export to JSON file
-ascelerate apps review preflight <bundle-id> [--version X]           # Pre-submission checks (includes IAP/sub state and pricing)
+ascelerate apps localizations view <bundle-id> [--version X] [--platform X]      # View localizations
+ascelerate apps localizations update <bundle-id> [--locale X] [--platform X]     # Update single locale via flags
+ascelerate apps localizations import <bundle-id> [--file X] [--platform X]       # Bulk update from JSON file
+ascelerate apps localizations export <bundle-id> [--version X] [--platform X]    # Export to JSON file
+ascelerate apps review preflight <bundle-id> [--version X] [--platform X]           # Pre-submission checks (includes IAP/sub state and pricing)
 ascelerate apps review status <bundle-id> [--version X]             # Review submission status
 ascelerate apps create-version <bundle-id> <ver> [--platform X]   # Create new version
-ascelerate apps build attach <bundle-id> [--version X]             # Interactively select and attach a build
-ascelerate apps build attach-latest <bundle-id> [--version X]     # Attach the most recent build
-ascelerate apps build detach <bundle-id> [--version X]            # Remove the attached build
-ascelerate apps phased-release <bundle-id> [--version X]          # View/manage phased release
+ascelerate apps copyright <bundle-id> [--set X] [--version X] [--platform X] [-y]  # View/update version copyright notice
+ascelerate apps build attach <bundle-id> [--version X] [--platform X]             # Interactively select and attach a build
+ascelerate apps build attach-latest <bundle-id> [--version X] [--platform X]     # Attach the most recent build
+ascelerate apps build detach <bundle-id> [--version X] [--platform X]            # Remove the attached build
+ascelerate apps phased-release <bundle-id> [--version X] [--platform X]          # View/manage phased release
 ascelerate apps app-info age-rating <bundle-id>                            # View age rating
 ascelerate apps app-info age-rating export <bundle-id>                     # Export age rating to JSON
 ascelerate apps app-info age-rating import <bundle-id> [--file X]          # Update age rating from JSON
 ascelerate apps routing-coverage <bundle-id> [--file X]           # View/upload routing coverage
 ascelerate apps review submit <bundle-id> [--version X]            # Submit version for App Review
-ascelerate apps review resolve-issues <bundle-id>                 # Mark rejected items as resolved
-ascelerate apps review cancel-submission <bundle-id>              # Cancel an active review submission
-ascelerate apps review info <bundle-id> [--version X] [--contact-first-name X] [--contact-last-name X] [--contact-phone X] [--contact-email X] [--demo-account-name X] [--demo-account-password X] [--demo-account-required true|false] [--notes X] [-y]  # View/update App Review Information
-ascelerate apps review attachment list <bundle-id> [--version X]              # List App Review attachment files
-ascelerate apps review attachment upload <bundle-id> [--version X] <file> [-y]  # Upload an App Review attachment
+ascelerate apps review resolve-issues <bundle-id> [--platform X]  # Mark rejected items as resolved
+ascelerate apps review cancel-submission <bundle-id> [--platform X]  # Cancel an active review submission
+ascelerate apps review info <bundle-id> [--version X] [--platform X] [--contact-first-name X] [--contact-last-name X] [--contact-phone X] [--contact-email X] [--demo-account-name X] [--demo-account-password X] [--demo-account-required true|false] [--notes X] [-y]  # View/update App Review Information
+ascelerate apps review attachment list <bundle-id> [--version X] [--platform X]              # List App Review attachment files
+ascelerate apps review attachment upload <bundle-id> [--version X] [--platform X] <file> [-y]  # Upload an App Review attachment
 ascelerate apps review attachment delete <attachment-id> [-y]               # Delete an App Review attachment
-ascelerate apps media upload <bundle-id> [folder] [--version X] [--replace]  # Upload screenshots/previews
-ascelerate apps media download <bundle-id> [--folder X] [--version X]        # Download screenshots/previews
-ascelerate apps media verify <bundle-id> [--version X] [folder]              # Check media status, retry stuck
+ascelerate apps media upload <bundle-id> [folder] [--version X] [--platform X] [--replace]  # Upload screenshots/previews
+ascelerate apps media download <bundle-id> [--folder X] [--version X] [--platform X]        # Download screenshots/previews
+ascelerate apps media verify <bundle-id> [--version X] [--platform X] [folder]              # Check media status, retry stuck
+ascelerate apps media prune <bundle-id> [folder] [--version X] [--platform X] [-y]          # Delete server sets with no matching local folder
 ascelerate apps app-info view <bundle-id>                         # View app info, categories, and localizations
 ascelerate apps app-info view --list-categories                   # List available category IDs
 ascelerate apps app-info update <bundle-id> [--name X] [--subtitle X] [--primary-category X] [-y]  # Update localization fields and/or categories
@@ -127,11 +131,11 @@ ascelerate apps availability <bundle-id> [--add X] [--remove X]  # View/update t
 ascelerate apps encryption <bundle-id> [--create]                 # View/create encryption declarations
 ascelerate apps eula <bundle-id> [--file X] [--delete]            # View/manage custom EULA
 ascelerate apps subscription-grace-period <bundle-id> [--opt-in true|false] [--sandbox-opt-in true|false] [--duration X] [--renewal-type X] [-y]  # View/update app-level subscription grace period
-ascelerate builds list [--bundle-id <id>] [--version X]           # List builds
+ascelerate builds list [--bundle-id <id>] [--version X] [--platform X]  # List builds
 ascelerate builds archive [--workspace X] [--scheme X] [--output X]  # Archive Xcode project
 ascelerate builds upload [file]                                   # Upload build via altool
 ascelerate builds validate [file]                                 # Validate build via altool
-ascelerate builds await-processing <bundle-id> [--build-version X]  # Wait for build to finish processing
+ascelerate builds await-processing <bundle-id> [--build-version X] [--platform X]  # Wait for build to finish processing
 ascelerate iap list <bundle-id> [--type X] [--state X]            # List in-app purchases
 ascelerate iap info <bundle-id> <product-id>                       # IAP details, localizations, missing-pricing warning
 ascelerate iap promoted list <bundle-id>                           # List promoted purchases (display order)
@@ -277,14 +281,14 @@ ascelerate version                                                # Print versio
 2. Use `AsyncParsableCommand` for commands that call the API
 3. Register in the appropriate `CommandGroup` in the parent's configuration (see below)
 4. Use `findApp(bundleID:client:)` to resolve bundle ID to app ID
-5. Use `findVersion(appID:versionString:platform:client:)` to resolve version (nil = prefers editable, prompts if multiple platforms)
+5. Use `findVersion(appID:versionString:platform:client:)` to resolve version (nil = prefers editable, prompts if multiple platforms); version-scoped commands should add `@OptionGroup var platformOption: PlatformOption` and pass `platform: try platformOption.parsed()`
 6. Use shared helpers from Formatting.swift: `formatDate()`, `expandPath()`, `formatState()` for enum display, color helpers (`green()`, `red()`, `yellow()`, `bold()`)
 7. Run `ascelerate install-completions` to regenerate completions after adding commands
 
 ### Subcommand grouping
 `AppsCommand` uses `CommandGroup` (swift-argument-parser 1.7+) to organize subcommands into sections in `--help` output:
 - **ungrouped** (`subcommands:`): list, info, versions — general browse commands
-- **Version**: create-version, build (attach, attach-latest, detach), phased-release, routing-coverage
+- **Version**: create-version, copyright, build (attach, attach-latest, detach), phased-release, routing-coverage
 - **Info & Content**: app-info (view, update, import, export, age-rating (view, export, import)), localizations (view, update, import, export), media (upload, download, verify)
 - **Configuration**: availability, encryption, eula
 - **Review**: review (preflight, status, submit, resolve-issues, cancel-submission, info, attachment)
@@ -320,7 +324,8 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
 ### Interactive mode
 - Most provisioning commands (devices, certs, bundle-ids, profiles) support interactive mode — arguments and options are optional.
 - When omitted, commands prompt with numbered lists fetched from the API (e.g. bundle ID picker, certificate picker, profile type selection).
-- Text inputs use a recursive `promptText()` that retries on empty input (same pattern as ConfigureCommand's `prompt()`).
+- Text inputs use a recursive `promptText()` that retries on empty input, throws on stdin EOF, and throws under `--yes` (interactive input can't be auto-confirmed).
+- `promptSelection`/`promptMultiSelection` refuse under `--yes` instead of auto-picking; `promptSelection` takes a `nonInteractiveHint` (e.g. "Pass --platform to disambiguate.") shown in that error.
 - Selection lists use `[\(i + 1)]` numbering, `readLine()` input, `Int()` parsing, and range validation.
 - `--yes` / `autoConfirm` is incompatible with interactive mode — commands throw `ValidationError` when required options are missing with `--yes`.
 - `enable-capability` filters the type picker to exclude already-enabled capabilities; `disable-capability` only shows enabled ones.
@@ -348,9 +353,10 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
 - Quoted strings are respected for arguments with spaces (e.g. `--file "path with spaces.json"`)
 - Without `--yes`: prompts once to confirm the workflow, then individual commands still prompt normally
 - With `--yes`: sets `autoConfirm = true` globally, all prompts are skipped
+- `autoConfirm` is restored after each step — a single step with `-y` (or a nested `run-workflow --yes`) must not auto-accept prompts in later steps of a non-`--yes` workflow
 - Commands are dispatched via `ASCClient.parseAsRoot(args)` — any registered subcommand works
 - Nested workflows supported (`run-workflow` can call another workflow file) with circular reference detection via `activeWorkflows` path stack
-- `builds upload` sets `lastUploadedBuildVersion` global — subsequent `await-processing` and `build attach-latest` automatically target the just-uploaded build, avoiding race conditions with API propagation delay
+- `builds upload` records the uploaded build number **per platform** (`recordUploadedBuild`/`lastUploadedBuild(for:)` in Formatting.swift) — subsequent `await-processing` (via its `--platform`) and `build attach-latest` (via the target version's platform) target the just-uploaded build for the RIGHT platform, avoiding both API propagation races and cross-platform build-number mixups when one workflow uploads iOS and macOS. A platform-specific miss never falls back to another platform's number; only a platform-less lookup uses the most recent upload.
 
 ### Xcode signing
 - Both `builds archive` and the `.xcarchive` → `.ipa` export pass `-allowProvisioningUpdates` to `xcodebuild`. Without this, `xcodebuild` only uses locally cached provisioning profiles and won't fetch updated ones from the Developer Portal (Xcode GUI does this automatically, CLI does not).
@@ -380,6 +386,7 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
 - **Territory availability limit is 50** — The v1 `include: [.territoryAvailabilities]` has a max limit of 50. Use the v2 sub-resource endpoint `Resources.v2.appAvailabilities.id(availabilityID).territoryAvailabilities.get(limit: 50, include: [.territory])` with `client.pages()` pagination.
 - **Multiple AppInfo objects per app** — `appInfos.get()` can return multiple objects (current + replaced). `pickActiveAppInfo()` handles selection: filters out `replacedWithNewInfo`, prefers editable state (prepareForSubmission/waitingForReview) over live. Used by both `findActiveAppInfo()` and `app-info view`. Included localizations must be filtered by the selected AppInfo's `relationships.appInfoLocalizations.data` IDs — back-references on included items aren't populated.
 - **`findVersion()` prefers editable versions** — when `versionString` is nil, first queries for prepareForSubmission/waitingForReview versions. If multiple exist (multi-platform apps), prompts user to select by platform. Falls back to latest version if none are editable.
+- **Universal-purchase apps hold the same version string per platform** — one app record can have e.g. iOS 5.0 AND macOS 5.0, and iOS/macOS builds can share build numbers. Any lookup by version string or build number must also match platform: `findVersion()` takes a `platform:` param (filters server-side, prompts if still ambiguous), `selectBuild()`/`awaitBuildProcessing()` filter via `buildPlatformFilter()` (`filter[preReleaseVersion.platform]`), and review submissions are matched by `attributes.platform` (one active submission per platform; `selectSubmission()` prompts when several are active). Version-scoped commands expose this via the shared `PlatformOption` option group (`--platform ios|macos|tvos|visionos`, parsed by `parsePlatform()`).
 - **AppCategory has no name attribute** — The category `id` IS the human-readable name (e.g. `UTILITIES`, `GAMES_ACTION`). No separate name field exists.
 - Localizations are per-version: get version ID first, then fetch/update localizations
 - Updates are one API call per locale — no bulk endpoint in the API
@@ -456,6 +463,8 @@ media/
 - Reorder screenshots via `PATCH /v1/appScreenshotSets/{id}/relationships/appScreenshots` with `AppScreenshotSetAppScreenshotsLinkagesRequest`
 - `AppMediaAssetState.State` values: `.awaitingUpload`, `.uploadComplete`, `.complete`, `.failed` — stuck items show `uploadComplete`
 - `media verify` checks all media status; with `--folder` retries stuck items: delete → upload → reorder
+- `media upload` filters the folder's display types to the target version's platform (APP_DESKTOP → macOS, APP_APPLE_TV* → tvOS, APP_APPLE_VISION* → visionOS, rest incl. Watch/iMessage → iOS; ASC 409s on foreign sets) and continues past per-set failures (non-zero exit if any failed)
+- `media prune` deletes server sets with no matching local locale/display-type folder (stale screen sizes) — `--replace` never touches those; locales absent from the folder are skipped entirely
 - File matching: server position N = Nth file alphabetically in local `locale/displayType/` folder
 
 ## Screenshot Module (`ascelerate screenshot`)
@@ -549,7 +558,7 @@ asc-swift exposes the full App Store Connect surface (~185 top-level v1 resource
 
 ### Partially covered
 - **Monetization** — IAP and subscriptions have CRUD + localizations + pricing (per-territory overrides for IAPs, equalize fan-out for subs with increase/decrease safety) + per-product availability + app-level grace period + subscription introductory offers + IAP/sub offer codes (with one-time-use + custom code generation) + subscription promotional offers + group submissions + IAP/sub promotional images + App Review screenshots. Remaining: **win-back offers** (blocked: asc-swift's `WinBackOfferPriceInlineCreate` doesn't expose territory/pricePoint relationships — can't reach the API correctly until the generator is updated. Confirmed still broken as of asc-swift 1.7.0: it remains the only `*PriceInlineCreate` type with just `type`+`id`, while all siblings — IAP/sub price, offer-code, promotional-offer — carry territory/pricePoint. The read-side `WinBackOfferPrice` does expose them, so it's specifically the CreateAPI-generated inline-create schema that's wrong), IAP hosted content (`inAppPurchaseContents`; read-only via API; low value).
-- **Build upload** — done via `altool` (binary upload); the API-native `buildUploads`/`buildUploadFiles`/`buildBundles` path is intentionally unused.
+- **Build upload** — done via `altool` (binary upload); the API-native `buildUploads`/`buildUploadFiles`/`buildBundles` path is intentionally unused. `.xcarchive` platform is detected from the archived app's Info.plist (`DTPlatformName`, falling back to Contents/ bundle layout): macOS exports to `.pkg` and uploads with `--type macos` (needs a Mac Installer Distribution cert), iOS-family exports to `.ipa`.
 - **Custom product pages** — page CRUD (`product-pages list/info/create/update/delete`; create is a compound version+localization request using `${local-id}` inline references) + localizations (`product-pages localizations view/export/import`; promotional text per locale) + media (`product-pages media list/upload/delete`; per-locale screenshot sets by display type and app preview sets). Remaining: **per-locale search-keyword linkages** (blocked, same class of asc-swift codegen gap as win-back offers — as of 1.7.0 the `AppKeyword` entity exposes no attributes, only `type`+`id`+`links`, so the keyword *text* is unavailable, and there's no endpoint to create keywords. The relationship endpoints exist — `appCustomProductPageLocalizations/{id}/relationships/searchKeywords` GET/POST/DELETE link keyword IDs to a localization, sourced from the read-only app pool `apps/{id}/searchKeywords` — but a command could only shuffle opaque, undisplayable IDs. Not shippable until `AppKeyword` exposes the keyword text).
 - **App metadata** — no commands for app tags, app categories CRUD, app clips, nominations (editorial).
 
