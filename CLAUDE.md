@@ -47,8 +47,9 @@ Sources/ascelerate/
     AliasCommand.swift                # Alias management (add, remove, list) for bundle ID shortcuts
     RunWorkflowCommand.swift          # Sequential command runner from workflow files
     InstallCompletionsCommand.swift   # Shell completion installer with post-processing patches
-    InstallSkillCommand.swift         # Multi-agent skill installer (Claude Code/Cursor/Windsurf/Copilot; fetches from GitHub)
+    InstallSkillCommand.swift         # Multi-agent skill installer (Claude Code+Grok Build/Cursor/Windsurf/Copilot; fetches from GitHub)
     RateLimitCommand.swift            # API rate limit status check
+    TestFlightCommand.swift           # TestFlight: beta groups, testers, build states, What to Test, beta review; findBetaGroup/findBuild helpers
     ReportsCommand.swift              # Sales/Finance/Analytics report downloads (reports sales/finance/analytics)
 skills/
   ascelerate/SKILL.md                # AI coding skill (single source of truth)
@@ -266,12 +267,52 @@ ascelerate reviews list <bundle-id> [--rating N] [--territory X] [--sort recent|
 ascelerate reviews info <review-id>                               # Full review text + developer response
 ascelerate reviews respond <review-id> --body "X" [-y]           # Publish/replace developer response
 ascelerate reviews delete-response <review-id> [-y]              # Delete developer response
+ascelerate testflight groups list <bundle-id>                     # List beta groups
+ascelerate testflight groups info <bundle-id> [group-name]        # Group details + testers + assigned builds
+ascelerate testflight groups create <bundle-id> --name X [--internal] [--all-builds] [--public-link] [--public-link-limit N] [--feedback true|false] [-y]  # Create beta group
+ascelerate testflight groups update <bundle-id> [group-name] [--name X] [--public-link true|false] [--public-link-limit N] [--feedback true|false] [-y]  # Update group (limit 0 removes the limit)
+ascelerate testflight groups delete <bundle-id> [group-name] [-y] # Delete beta group
+ascelerate testflight groups add-build <bundle-id> [group-name] [--build N] [--platform X] [-y]     # Give group access to a build
+ascelerate testflight groups remove-build <bundle-id> [group-name] [--build N] [--platform X] [-y]  # Remove a build from a group
+ascelerate testflight groups criteria view <bundle-id> [group-name] [--options]  # View public-link recruitment criteria (+available device/OS options)
+ascelerate testflight groups criteria set <bundle-id> [group-name] --filter FAMILY[:MIN[:MAX]] ... [-y]  # Set recruitment criteria (replaces existing)
+ascelerate testflight groups criteria clear <bundle-id> [group-name] [-y]  # Remove recruitment criteria
+ascelerate testflight testers list <bundle-id> [--group X] [--email X]  # List beta testers
+ascelerate testflight testers add <bundle-id> --email X [--first-name X] [--last-name X] --group X[,Y] [-y]  # Add tester to group(s)
+ascelerate testflight testers remove <bundle-id> <email> [--group X] [-y]  # Remove from one group, or from the whole app if --group omitted
+ascelerate testflight testers invite <bundle-id> <email> [-y]     # Re-send the invitation email
+ascelerate testflight testers import <bundle-id> --file X.csv --group X[,Y] [-y]  # Bulk-add testers from CSV (email[,first[,last]])
+ascelerate testflight builds <bundle-id> [--platform X] [--limit N]  # List builds with internal/external TestFlight states
+ascelerate testflight versions <bundle-id> [--platform X] [--limit N]  # List pre-release version trains
+ascelerate testflight expire <bundle-id> [--build N] [--platform X] [-y]  # Expire a build
+ascelerate testflight notify <bundle-id> [--build N] [--platform X] [-y]  # Notify testers a build is available
+ascelerate testflight auto-notify <bundle-id> --enabled true|false [--build N] [--platform X] [-y]  # Toggle automatic tester notification
+ascelerate testflight whats-new view <bundle-id> [--build N] [--platform X]  # View test notes (What to Test) per locale
+ascelerate testflight whats-new set <bundle-id> --text X [--locale X] [--build N] [--platform X] [-y]  # Set test notes (all existing locales if --locale omitted)
+ascelerate testflight whats-new export <bundle-id> [--build N] [--output X]  # Export test notes to JSON
+ascelerate testflight whats-new import <bundle-id> [--build N] [--file X] [-y]  # Import test notes from JSON
+ascelerate testflight submit <bundle-id> [--build N] [--platform X] [-y]  # Submit build for beta review (external testing)
+ascelerate testflight status <bundle-id> [--build N] [--platform X]  # Processing + internal/external + beta review states
+ascelerate testflight app-info view <bundle-id>                   # View beta app information per locale
+ascelerate testflight app-info update <bundle-id> [--locale X] [--description X] [--feedback-email X] [--marketing-url X] [--privacy-policy-url X] [-y]  # Update beta app information
+ascelerate testflight app-info export <bundle-id> [--output X]    # Export beta app information to JSON
+ascelerate testflight app-info import <bundle-id> [--file X] [-y] # Import beta app information from JSON
+ascelerate testflight review-info <bundle-id> [--contact-first-name X] [--contact-last-name X] [--contact-phone X] [--contact-email X] [--demo-account-name X] [--demo-account-password X] [--demo-account-required true|false] [--notes X] [-y]  # View/update beta review information
+ascelerate testflight eula <bundle-id> [--file X | --text X] [-y] # View/update beta license agreement (--text "" reverts to Apple's standard)
+ascelerate testflight feedback crashes list <bundle-id> [--build N] [--platform X] [--limit N]  # List crash feedback
+ascelerate testflight feedback crashes info <submission-id>       # Full crash feedback details
+ascelerate testflight feedback crashes log <submission-id> [--output X]  # Print or save the crash log
+ascelerate testflight feedback crashes delete <submission-id> [-y]  # Delete crash feedback
+ascelerate testflight feedback screenshots list <bundle-id> [--build N] [--platform X] [--limit N]  # List screenshot feedback
+ascelerate testflight feedback screenshots info <submission-id>   # Full screenshot feedback details
+ascelerate testflight feedback screenshots download <bundle-id> [submission-id] [--output X.zip]  # Zip of screenshots + comment; paged interactive picker if ID omitted
+ascelerate testflight feedback screenshots delete <submission-id> [-y]  # Delete screenshot feedback
 ascelerate reports sales [--frequency DAILY|WEEKLY|MONTHLY|YEARLY] [--date X] [--type SALES] [--sub-type SUMMARY] [--bundle-id X] [--vendor-number X] [--output X] [--raw]  # Sales & Trends report (units/downloads); summarizes units by title/product type
 ascelerate reports finance --date YYYY-MM --region US [--type FINANCIAL|FINANCE_DETAIL] [--vendor-number X] [--output X] [--raw]  # Financial report (units + partner proceeds) for a fiscal period
 ascelerate reports analytics <bundle-id> [--category APP_STORE_ENGAGEMENT|APP_USAGE|COMMERCE|FRAMEWORK_USAGE|PERFORMANCE] [--granularity DAILY|WEEKLY|MONTHLY] [--report-name X] [--processing-date X] [--ongoing] [--output X] [-y]  # App Analytics report (downloads, impressions, sessions); reuses/creates a report request, downloads segments
 ascelerate run-workflow [file] [--yes]                            # Run commands from a workflow file
 ascelerate rate-limit                                             # Show API rate limit status
-ascelerate install-skill [--all] [--uninstall]                    # Install/update the skill for detected AI agents (Claude Code/Cursor/Windsurf; +Copilot with --all)
+ascelerate install-skill [--all] [--uninstall]                    # Install/update the skill for detected AI agents (Claude Code+Grok Build/Cursor/Windsurf; +Copilot with --all)
 ascelerate screenshot [--languages en-US,tr-TR]                   # Capture screenshots (optional language subset override)
 ascelerate screenshot init                                        # Create ascelerate/screenshot.yml + ScreenshotHelper.swift
 ascelerate screenshot create-helper [-o file]                     # Generate UITest helper file
@@ -310,7 +351,7 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
 - **No `version:` on `CommandConfiguration`** — intentionally omitted. ArgumentParser leaks a root `--version` flag into every subcommand's completion function, which conflicts with subcommands that define their own `--version` option (e.g. `builds list --version`, `apps review status --version`).
 - Version is stored as `static let appVersion` in `ASC.swift`.
 - `ascelerate version` subcommand prints just the version number. `--version` and `-v` are intercepted in `main()` before ArgumentParser and produce the same output.
-- `install-completions` stamps `# ascelerate vX.Y.Z` into completion scripts (after `#compdef` line for zsh) and `install-skill` stamps `<!-- ascelerate vX.Y.Z -->` into each installed skill file (across all targeted agents). The update-check (`skillVersionDetail()`) scans every installed agent path and only flags **stamped** skills (npx-installed ones are unstamped and skipped, so they don't false-positive). `install-skill` targets agents that are detected (`~/.claude`, `~/.cursor`, `~/.windsurf`) or already have the skill; `--all` forces all four (incl. Copilot, which has no detectable dir).
+- `install-completions` stamps `# ascelerate vX.Y.Z` into completion scripts (after `#compdef` line for zsh) and `install-skill` stamps `<!-- ascelerate vX.Y.Z -->` into each installed skill file (across all targeted agents). The update-check (`skillVersionDetail()`) scans every installed agent path and only flags **stamped** skills (npx-installed ones are unstamped and skipped, so they don't false-positive). `install-skill` targets agents that are detected (`~/.claude` or `~/.grok` for the shared Claude Code/Grok Build entry, `~/.cursor`, `~/.windsurf`) or already have the skill; `--all` forces all four entries (incl. Copilot, which has no detectable dir). Grok Build reads the Claude Code skill path natively, so both share one entry/target file.
 - `checkForUpdates()` (non-interactive, API commands) and `checkForUpdatesInteractively()` (bare invocation) detect outdated completions and/or skill, offering a single Y/n prompt or NOTE line. The version compare uses `isVersionOlder()` (numeric, component-wise) and only flags a stamp that is **strictly older** than the running binary — so an older `ascelerate` earlier in PATH never offers to *downgrade* completions/skill that a newer build installed.
 - Both `install-skill` and the npx installer (`npx ascelerate-skill`) fetch `SKILL.md` from GitHub — the skill content is NOT embedded in the binary. `skills/ascelerate/SKILL.md` in the repo is the single source of truth.
 
@@ -398,6 +439,11 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
 - Only versions in editable states (`PREPARE_FOR_SUBMISSION` or `WAITING_FOR_REVIEW`) accept localization updates — except `promotionalText`, which can be updated in any state
 - `create-version` `--release-type` is optional; omitting it uses the previous version's setting
 - **`bundleIDCapabilities` sub-resource rejects `limit`** — despite the generated code accepting `limit: Int?`, the API returns an error if `limit` is passed. Use `.get()` with no arguments.
+- **TestFlight endpoints** — `betaAppReviewDetails` always exists per app (PATCH only, no POST); same for `betaLicenseAgreements` (empty `agreementText` = Apple's standard agreement). Internal groups with `hasAccessToAllBuilds` have no explicit build list (skip the builds fetch). On `betaTesters.get`, don't combine `filterApps` with `filterBetaGroups` — the group already scopes to one app. `findBuild()` in TestFlightCommand.swift resolves `--build`/`--platform` to a build (latest non-expired by default, expired allowed when an explicit number is given) with the same cross-platform ambiguity prompting as `findVersion()`.
+- **Recruitment criteria quirks** — `GET betaGroups/{id}/betaRecruitmentCriteria` on a group with no criteria returns HTTP **409** ("BetaRecruitmentCriteria with id '…' does not exist"), not 404 or a null payload — `Criteria.fetch()` maps both 404 and 409 to nil. Unbounded OS limits come back as **empty strings**, not nil. Device-family enum case names (`iphone`, `ipad`, `appleTv`, `vision`) have `formatFieldName` overrides for proper display (iPhone, iPad, Apple TV, Apple Vision).
+- **Tester invites need an installable build** — `betaTesterInvitations` POST fails with a clear API error if the tester's groups have no builds assigned; surface it as-is.
+- **TestFlight locales ≠ App Store metadata locales** — `betaBuildLocalizations`/`betaAppLocalizations` use TestFlight's own locale set: `tr`, `ja`, `ko` (bare codes) but `en-US`, `de-DE`, `fr-FR` (region-qualified). Creating with `tr-TR` fails with 409 "The 'locale' value is invalid" (verified live). App Store version localizations, by contrast, use `tr-TR`.
+- **Beta review is instant for follow-up builds** — only the first build of a version gets a full beta review; later builds of an approved version go straight to APPROVED on submission (verified live: QuakeLens 1.0 build 9 after build 8 was approved).
 - Filter parameters vary per endpoint — check the generated PathsV1*.swift files for exact signatures
 - **IAP price schedule fetches need fields[] AND include[] for relationships to populate** — Two related quirks discovered when wiring `iap pricing`:
   - `Resources.v2.inAppPurchases.id(iapID).iapPriceSchedule.get(...)` returns the schedule but `relationships.baseTerritory.data.id` is nil unless you pass `fieldsInAppPurchasePriceSchedules: [.baseTerritory, .manualPrices]` AND `include: [.baseTerritory]`. Both are required.
@@ -573,17 +619,17 @@ ascelerate screenshot create-helper [-o file] # Generate ScreenshotHelper.swift 
 
 ## Not Yet Implemented
 
-asc-swift exposes the full App Store Connect surface (~185 top-level v1 resources). ascelerate wraps **67** of them — deep coverage where it exists (apps, versions, version/app-info localizations, screenshots/previews, full IAP + subscriptions incl. promoted-purchase CRUD, provisioning, review submissions + App Review Information (details + attachments), builds, territories/availability, encryption, EULA, age rating, routing coverage, customer reviews + responses, in-app events incl. localizations + media), but several whole product areas are untouched. Gap analysis last refreshed against **asc-swift 1.7.0**.
+asc-swift exposes the full App Store Connect surface (~185 top-level v1 resources). ascelerate wraps **82** of them — deep coverage where it exists (apps, versions, version/app-info localizations, screenshots/previews, full IAP + subscriptions incl. promoted-purchase CRUD, provisioning, review submissions + App Review Information (details + attachments), builds, territories/availability, encryption, EULA, age rating, routing coverage, customer reviews + responses, in-app events incl. localizations + media, TestFlight core), but several whole product areas are untouched. Gap analysis last refreshed against **asc-swift 1.7.0**.
 
 ### Partially covered
 - **Monetization** — IAP and subscriptions have CRUD + localizations + pricing (per-territory overrides for IAPs, equalize fan-out for subs with increase/decrease safety, cross-product export/import of price schedules) + per-product availability + app-level grace period + subscription introductory offers + IAP/sub offer codes (with one-time-use + custom code generation) + subscription promotional offers + group submissions + IAP/sub promotional images + App Review screenshots. Remaining: **win-back offers** (blocked: asc-swift's `WinBackOfferPriceInlineCreate` doesn't expose territory/pricePoint relationships — can't reach the API correctly until the generator is updated. Confirmed still broken as of asc-swift 1.7.0: it remains the only `*PriceInlineCreate` type with just `type`+`id`, while all siblings — IAP/sub price, offer-code, promotional-offer — carry territory/pricePoint. The read-side `WinBackOfferPrice` does expose them, so it's specifically the CreateAPI-generated inline-create schema that's wrong), IAP hosted content (`inAppPurchaseContents`; read-only via API; low value).
 - **Build upload** — done via `altool` (binary upload); the API-native `buildUploads`/`buildUploadFiles`/`buildBundles` path is intentionally unused. `.xcarchive` platform is detected from the archived app's Info.plist (`DTPlatformName`, falling back to Contents/ bundle layout): macOS exports to `.pkg` and uploads with `--type macos` (needs a Mac Installer Distribution cert), iOS-family exports to `.ipa`.
 - **Custom product pages** — page CRUD (`product-pages list/info/create/update/delete`; create is a compound version+localization request using `${local-id}` inline references) + localizations (`product-pages localizations view/export/import`; promotional text per locale) + media (`product-pages media list/upload/delete`; per-locale screenshot sets by display type and app preview sets). Remaining: **per-locale search-keyword linkages** (blocked, same class of asc-swift codegen gap as win-back offers — as of 1.7.0 the `AppKeyword` entity exposes no attributes, only `type`+`id`+`links`, so the keyword *text* is unavailable, and there's no endpoint to create keywords. The relationship endpoints exist — `appCustomProductPageLocalizations/{id}/relationships/searchKeywords` GET/POST/DELETE link keyword IDs to a localization, sourced from the read-only app pool `apps/{id}/searchKeywords` — but a command could only shuffle opaque, undisplayable IDs. Not shippable until `AppKeyword` exposes the keyword text).
 - **App metadata** — no commands for app tags, app categories CRUD, app clips, nominations (editorial).
+- **TestFlight** — **fully covered** as of 0.16.0: beta groups (CRUD + public links + build assignment + recruitment criteria), beta testers (list/add/remove/invite-resend/CSV bulk import), builds with internal/external states (`buildBetaDetails`) + auto-notify toggle, expire, tester notifications (`buildBetaNotifications`), pre-release version trains, What to Test (`betaBuildLocalizations` view/set/export/import), beta review submissions (`submit`/`status`), beta app info (`betaAppLocalizations`), beta review information (`betaAppReviewDetails`), beta license agreement (`betaLicenseAgreements`), and tester feedback (`betaFeedbackCrashSubmissions` incl. crash log text, `betaFeedbackScreenshotSubmissions` incl. image download). Note: Apple's public API has no bulk-tester endpoint — `testers import` loops `betaTesters` POSTs client-side.
 
 ### Missing entirely
 Counts are approximate top-level resources from the 1.7.0 surface.
-- **TestFlight / Beta** (~20) — beta groups, testers, tester invitations, beta app/build localizations, beta app review submissions/details, crash logs, feedback (crash + screenshot) submissions, recruitment criteria, prerelease versions, build beta details/notifications. *Largest single gap.*
 - **Game Center** (~38) — achievements, leaderboards (+sets), challenges, activities, matchmaking (queues/rules/teams), groups, details, enabled versions, releases.
 - **Xcode Cloud (CI/CD) + SCM** (~17) — `ci*` (products, workflows, build runs/actions, artifacts, issues, test results, macOS/Xcode versions) and `scm*` (providers, repositories, git refs, pull requests).
 - **A/B experiments** (3) — App Store version experiments + treatments + treatment localizations.
