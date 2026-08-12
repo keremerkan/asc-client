@@ -628,6 +628,7 @@ Every docs page has a `.md` twin served via `Accept: text/markdown` content nego
 - `website/scripts/generate-md-twins.mjs` copies all docs source `.md` files (all 5 locales) into the build output at their route paths (`/docs/<page>.md`, `/de/docs/<page>.md`, …). It runs as part of `npm run build` — **the Pages build command must stay `npm run build`**, not `docusaurus build`, or twins won't generate.
 - `website/functions/_middleware.js` (Cloudflare Pages Function) does the negotiation: markdown-accepting requests get the twin with `Content-Type: text/markdown; charset=utf-8`; HTML responses get `Vary: Accept`. Pages HTML is never edge-cached, so there is no Vary/cache-poisoning risk here.
 - `website/static/index.md` is the **hand-written** homepage twin — update it when the homepage copy in `src/pages/index.tsx` changes. Docs twins are verbatim source and need no maintenance.
+- `website/scripts/generate-agent-skills.mjs` (also in `npm run build`) publishes the repo's `skills/*/SKILL.md` files at `/.well-known/agent-skills/` with an `index.json` manifest (Agent Skills discovery convention) — sourced from the repo's skills, so they can't drift.
 - `website/static/robots.txt` carries `Content-Signal: ai-train=yes, search=yes, ai-input=yes`. The zone's Cloudflare **managed robots.txt is deliberately disabled** (it declared ai-train=no and blocked AI crawlers, which is counterproductive for a developer tool) — don't re-enable it.
 
 ## Not Yet Implemented
