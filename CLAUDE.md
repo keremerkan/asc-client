@@ -617,6 +617,19 @@ ascelerate screenshot init                    # Create ascelerate/screenshot.yml
 ascelerate screenshot create-helper [-o file] # Generate ScreenshotHelper.swift (default: ascelerate/)
 ```
 
+## Website (`website/`)
+
+Docusaurus 3 docs site (ascelerate.dev), 5 locales (en/de/fr/ja/tr, translations under `website/i18n/`), deployed via git-integrated **Cloudflare Pages** building from `main` (root `website/`, output `build/`). No local deploy step — pushing to `main` deploys.
+
+### Markdown for agents (2026-08)
+
+Every docs page has a `.md` twin served via `Accept: text/markdown` content negotiation (same workspace-wide pattern as the sites under `~/Developer/Web` — see that workspace's CLAUDE.md; reference implementation: keremerkan.dev):
+
+- `website/scripts/generate-md-twins.mjs` copies all docs source `.md` files (all 5 locales) into the build output at their route paths (`/docs/<page>.md`, `/de/docs/<page>.md`, …). It runs as part of `npm run build` — **the Pages build command must stay `npm run build`**, not `docusaurus build`, or twins won't generate.
+- `website/functions/_middleware.js` (Cloudflare Pages Function) does the negotiation: markdown-accepting requests get the twin with `Content-Type: text/markdown; charset=utf-8`; HTML responses get `Vary: Accept`. Pages HTML is never edge-cached, so there is no Vary/cache-poisoning risk here.
+- `website/static/index.md` is the **hand-written** homepage twin — update it when the homepage copy in `src/pages/index.tsx` changes. Docs twins are verbatim source and need no maintenance.
+- `website/static/robots.txt` carries `Content-Signal: ai-train=yes, search=yes, ai-input=yes`. The zone's Cloudflare **managed robots.txt is deliberately disabled** (it declared ai-train=no and blocked AI crawlers, which is counterproductive for a developer tool) — don't re-enable it.
+
 ## Not Yet Implemented
 
 asc-swift exposes the full App Store Connect surface (~185 top-level v1 resources). ascelerate wraps **82** of them — deep coverage where it exists (apps, versions, version/app-info localizations, screenshots/previews, full IAP + subscriptions incl. promoted-purchase CRUD, provisioning, review submissions + App Review Information (details + attachments), builds, territories/availability, encryption, EULA, age rating, routing coverage, customer reviews + responses, in-app events incl. localizations + media, TestFlight core), but several whole product areas are untouched. Gap analysis last refreshed against **asc-swift 1.7.0**.
