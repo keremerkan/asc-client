@@ -93,15 +93,15 @@ Config file at `~/.ascelerate/config.json`:
 
 ```
 ascelerate configure                                              # Interactive setup
-ascelerate apps list                                              # List all apps
-ascelerate apps info <bundle-id>                                  # App details
-ascelerate apps versions <bundle-id>                              # List App Store versions
+ascelerate apps list [--json]                                     # List all apps
+ascelerate apps info <bundle-id> [--json]                         # App details
+ascelerate apps versions <bundle-id> [--json]                     # List App Store versions
 ascelerate apps localizations view <bundle-id> [--version X] [--platform X]      # View localizations
 ascelerate apps localizations update <bundle-id> [--locale X] [--platform X]     # Update single locale via flags
 ascelerate apps localizations import <bundle-id> [--file X] [--platform X]       # Bulk update from JSON file
 ascelerate apps localizations export <bundle-id> [--version X] [--platform X]    # Export to JSON file
-ascelerate apps review preflight <bundle-id> [--version X] [--platform X]           # Pre-submission checks (includes IAP/sub state and pricing)
-ascelerate apps review status <bundle-id> [--version X]             # Review submission status
+ascelerate apps review preflight <bundle-id> [--version X] [--platform X] [--json]  # Pre-submission checks (includes IAP/sub state and pricing)
+ascelerate apps review status <bundle-id> [--version X] [--json]    # Review submission status
 ascelerate apps create-version <bundle-id> <ver> [--platform X]   # Create new version
 ascelerate apps copyright <bundle-id> [--set X] [--version X] [--platform X] [-y]  # View/update version copyright notice
 ascelerate apps build attach <bundle-id> [--version X] [--platform X]             # Interactively select and attach a build
@@ -132,13 +132,13 @@ ascelerate apps availability <bundle-id> [--add X] [--remove X]  # View/update t
 ascelerate apps encryption <bundle-id> [--create]                 # View/create encryption declarations
 ascelerate apps eula <bundle-id> [--file X] [--delete]            # View/manage custom EULA
 ascelerate apps subscription-grace-period <bundle-id> [--opt-in true|false] [--sandbox-opt-in true|false] [--duration X] [--renewal-type X] [-y]  # View/update app-level subscription grace period
-ascelerate builds list [--bundle-id <id>] [--version X] [--platform X]  # List builds
+ascelerate builds list [--bundle-id <id>] [--version X] [--platform X] [--json]  # List builds
 ascelerate builds archive [--workspace X] [--scheme X] [--output X]  # Archive Xcode project
 ascelerate builds upload [file]                                   # Upload build via altool
 ascelerate builds validate [file]                                 # Validate build via altool
 ascelerate builds await-processing <bundle-id> [--build-version X] [--platform X]  # Wait for build to finish processing
-ascelerate iap list <bundle-id> [--type X] [--state X]            # List in-app purchases
-ascelerate iap info <bundle-id> <product-id>                       # IAP details, localizations, missing-pricing warning
+ascelerate iap list <bundle-id> [--type X] [--state X] [--json]   # List in-app purchases
+ascelerate iap info <bundle-id> <product-id> [--json]              # IAP details, localizations, missing-pricing warning
 ascelerate iap promoted list <bundle-id>                           # List promoted purchases (display order)
 ascelerate iap promoted add <bundle-id> <product-id> [--visible-for-all true|false] [--enabled true|false] [-y]  # Promote an IAP/subscription
 ascelerate iap promoted remove <bundle-id> <product-id> [-y]       # Stop promoting
@@ -151,7 +151,7 @@ ascelerate iap submit <bundle-id> <product-id> [-y]               # Submit IAP f
 ascelerate iap localizations view <bundle-id> <product-id>        # View IAP localizations
 ascelerate iap localizations export <bundle-id> <product-id> [--output X]  # Export IAP localizations to JSON
 ascelerate iap localizations import <bundle-id> <product-id> [--file X] [--verbose] [-y]  # Import IAP localizations from JSON
-ascelerate iap pricing show <bundle-id> <product-id>              # Show current price schedule (warns if missing)
+ascelerate iap pricing show <bundle-id> <product-id> [--json]     # Show current price schedule (warns if missing)
 ascelerate iap pricing tiers <bundle-id> <product-id> [--territory USA]  # List available price tiers for a territory
 ascelerate iap pricing set <bundle-id> <product-id> --price 4.99 [--base-territory USA] [--start-date YYYY-MM-DD] [--remove-all-overrides] [-y]  # Set base price; preserves overrides (interactive menu to drop)
 ascelerate iap pricing override <bundle-id> <product-id> --price 5.99 --territory FRA [--start-date YYYY-MM-DD] [-y]  # Add/update per-territory manual price override
@@ -172,9 +172,9 @@ ascelerate iap images delete <bundle-id> <product-id> <image-id> [-y]  # Delete 
 ascelerate iap review-screenshot view <bundle-id> <product-id>    # Show current App Review screenshot
 ascelerate iap review-screenshot upload <bundle-id> <product-id> <file> [-y]  # Upload (replaces existing)
 ascelerate iap review-screenshot delete <bundle-id> <product-id> [-y]  # Delete
-ascelerate sub groups <bundle-id>                                 # List subscription groups with subscriptions
-ascelerate sub list <bundle-id>                                   # Flat list of all subscriptions
-ascelerate sub info <bundle-id> <product-id>                      # Subscription details, localizations, missing-prices warning
+ascelerate sub groups <bundle-id> [--json]                        # List subscription groups with subscriptions
+ascelerate sub list <bundle-id> [--json]                          # Flat list of all subscriptions
+ascelerate sub info <bundle-id> <product-id> [--json]             # Subscription details, localizations, missing-prices warning
 ascelerate sub create <bundle-id> [--product-id X] [--name X] [--period X] [--group-level N] [--review-note X] [--family-sharable] [-y]  # Create subscription
 ascelerate sub update <bundle-id> <product-id> [--name X] [--review-note X] [--group-level N] [--family-sharable true|false] [-y]  # Update subscription
 ascelerate sub delete <bundle-id> <product-id> [-y]               # Delete subscription
@@ -188,7 +188,7 @@ ascelerate sub localizations import <bundle-id> <product-id> [--file X] [--verbo
 ascelerate sub group-localizations view <bundle-id>               # View group localizations
 ascelerate sub group-localizations export <bundle-id> [--output X]  # Export group localizations to JSON
 ascelerate sub group-localizations import <bundle-id> [--file X] [--verbose] [-y]  # Import group localizations from JSON
-ascelerate sub pricing show <bundle-id> <product-id>              # Show current prices per territory (warns if none)
+ascelerate sub pricing show <bundle-id> <product-id> [--json]     # Show current prices per territory (warns if none)
 ascelerate sub pricing tiers <bundle-id> <product-id> [--territory USA]  # List available price tiers for a territory
 ascelerate sub pricing set <bundle-id> <product-id> --price 4.99 [--territory USA] [--start-date YYYY-MM-DD] [--preserve-current | --no-preserve-current] [--equalize-all-territories] [--confirm-decrease] [-y]  # Set price for one territory or fan out to all (equalized). Increases require --preserve-current/--no-preserve-current; decreases prompt interactively or require --confirm-decrease in -y mode.
 ascelerate sub pricing export <bundle-id> <product-id> [--output X]  # Export per-territory prices to JSON
@@ -263,8 +263,8 @@ ascelerate product-pages localizations import <bundle-id> <name-or-id> [--file X
 ascelerate product-pages media list <bundle-id> <name-or-id>     # List page screenshots + app previews
 ascelerate product-pages media upload <bundle-id> <name-or-id> --locale X [--display-type APP_IPHONE_67 | --preview-type APP_IPHONE_67] <file> [--preview-frame X] [-y]  # Upload screenshot/preview (creates set)
 ascelerate product-pages media delete <bundle-id> <name-or-id> <media-id> [-y]  # Delete a screenshot or app preview
-ascelerate reviews list <bundle-id> [--rating N] [--territory X] [--sort recent|oldest|critical|best] [--unanswered] [--limit N]  # List customer reviews
-ascelerate reviews info <review-id>                               # Full review text + developer response
+ascelerate reviews list <bundle-id> [--rating N] [--territory X] [--sort recent|oldest|critical|best] [--unanswered] [--limit N] [--json]  # List customer reviews
+ascelerate reviews info <review-id> [--json]                      # Full review text + developer response
 ascelerate reviews respond <review-id> --body "X" [-y]           # Publish/replace developer response
 ascelerate reviews delete-response <review-id> [-y]              # Delete developer response
 ascelerate testflight groups list <bundle-id>                     # List beta groups
@@ -282,7 +282,7 @@ ascelerate testflight testers add <bundle-id> --email X [--first-name X] [--last
 ascelerate testflight testers remove <bundle-id> <email> [--group X] [-y]  # Remove from one group, or from the whole app if --group omitted
 ascelerate testflight testers invite <bundle-id> <email> [-y]     # Re-send the invitation email
 ascelerate testflight testers import <bundle-id> --file X.csv --group X[,Y] [-y]  # Bulk-add testers from CSV (email[,first[,last]])
-ascelerate testflight builds <bundle-id> [--platform X] [--limit N]  # List builds with internal/external TestFlight states
+ascelerate testflight builds <bundle-id> [--platform X] [--limit N] [--json]  # List builds with internal/external TestFlight states
 ascelerate testflight versions <bundle-id> [--platform X] [--limit N]  # List pre-release version trains
 ascelerate testflight expire <bundle-id> [--build N] [--platform X] [-y]  # Expire a build
 ascelerate testflight notify <bundle-id> [--build N] [--platform X] [-y]  # Notify testers a build is available
@@ -292,7 +292,7 @@ ascelerate testflight whats-new set <bundle-id> --text X [--locale X] [--build N
 ascelerate testflight whats-new export <bundle-id> [--build N] [--output X]  # Export test notes to JSON
 ascelerate testflight whats-new import <bundle-id> [--build N] [--file X] [-y]  # Import test notes from JSON
 ascelerate testflight submit <bundle-id> [--build N] [--platform X] [-y]  # Submit build for beta review (external testing)
-ascelerate testflight status <bundle-id> [--build N] [--platform X]  # Processing + internal/external + beta review states
+ascelerate testflight status <bundle-id> [--build N] [--platform X] [--json]  # Processing + internal/external + beta review states
 ascelerate testflight app-info view <bundle-id>                   # View beta app information per locale
 ascelerate testflight app-info update <bundle-id> [--locale X] [--description X] [--feedback-email X] [--marketing-url X] [--privacy-policy-url X] [-y]  # Update beta app information
 ascelerate testflight app-info export <bundle-id> [--output X]    # Export beta app information to JSON
@@ -311,7 +311,7 @@ ascelerate reports sales [--frequency DAILY|WEEKLY|MONTHLY|YEARLY] [--date X] [-
 ascelerate reports finance --date YYYY-MM --region US [--type FINANCIAL|FINANCE_DETAIL] [--vendor-number X] [--output X] [--raw]  # Financial report (units + partner proceeds) for a fiscal period
 ascelerate reports analytics <bundle-id> [--category APP_STORE_ENGAGEMENT|APP_USAGE|COMMERCE|FRAMEWORK_USAGE|PERFORMANCE] [--granularity DAILY|WEEKLY|MONTHLY] [--report-name X] [--processing-date X] [--ongoing] [--output X] [-y]  # App Analytics report (downloads, impressions, sessions); reuses/creates a report request, downloads segments
 ascelerate run-workflow [file] [--yes]                            # Run commands from a workflow file
-ascelerate rate-limit                                             # Show API rate limit status
+ascelerate rate-limit [--json]                                    # Show API rate limit status
 ascelerate install-skill [--all] [--uninstall]                    # Install/update the skill for detected AI agents (Claude Code+Grok Build/Cursor/Windsurf; +Copilot with --all)
 ascelerate screenshot [--languages en-US,tr-TR]                   # Capture screenshots (optional language subset override)
 ascelerate screenshot init                                        # Create ascelerate/screenshot.yml + ScreenshotHelper.swift
@@ -375,6 +375,17 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
 - `--yes` / `autoConfirm` is incompatible with interactive mode — commands throw `ValidationError` when required options are missing with `--yes`.
 - `enable-capability` filters the type picker to exclude already-enabled capabilities; `disable-capability` only shows enabled ones.
 - `enable-capability` and `disable-capability` offer to regenerate provisioning profiles after changes (delete + recreate with same settings) via `regenerateProfilesIfNeeded()` helper in BundleIDsCommand.swift.
+
+### JSON output (`--json`)
+- Read commands can offer machine-readable output via the shared `JSONOption` option group (Formatting.swift): add `@OptionGroup var jsonOption: JSONOption`, call `jsonOption.activate()` at the top of `run()`.
+- Pattern: build a private `Encodable` result struct FIRST (fetch everything, no printing), then branch — `if jsonOption.json { try printJSON(result); return }` — and render the text/table output from the same struct. One data assembly, two renderers.
+- JSON conventions (LOCKED — the skill/docs advertise this shape, don't break it): list commands emit a bare top-level ARRAY of objects; detail commands emit a single top-level OBJECT. Every object representing an API resource carries its `id`. Raw API enum values (`WAITING_FOR_REVIEW`, `IOS`), ISO 8601 dates (`Date` fields + `printJSON`'s `.iso8601` strategy), sorted keys, `nil` fields omitted (synthesized `Encodable`), empty results emit `[]` — never prose like "No reviews found." Warnings the text UI prints as prose become explicit booleans (e.g. `hasPricing`).
+- Text rendering from raw values: `formatFieldName` handles single all-caps words ("MANUAL" → "Manual") and has raw-value overrides for platforms ("IOS" → "iOS", "MAC_OS" → "macOS", …) — so `formatState(rawString)` renders the same as the old enum-based path.
+- `--json` implies non-interactive: it sets the global `jsonMode` (mirror of `autoConfirm`); `promptText`/`promptSelection`/`promptMultiSelection` refuse with the `--json` flag named in the error. `run-workflow` restores `jsonMode` after each step like `autoConfirm`. Errors go to stderr (central handler), so stdout stays parseable.
+- Currently on: `apps list/info/versions`, `apps review preflight/status`, `builds list`, `reviews list/info` (list includes full review bodies + developer responses, saving per-review `info` calls), `testflight builds/status`, `rate-limit`, `iap list/info`, `sub groups/list/info`, `iap pricing show`, `sub pricing show`. Fan out to other read commands using the same pattern; `--json` is not for write commands.
+- `apps review preflight --json` emits `{versionID, version, platform, state, passed, checks: [{group?, name, passed, detail}]}` — `group` is nil for top-level checks, a locale code for per-locale checks, or the `inAppPurchases`/`subscriptions` sentinels; the text table (group headers, indentation) is rendered FROM this model, and the exit code stays non-zero on failures in both modes (CI gate). Progress messages ("Checking build...") are suppressed under `--json`.
+- `pricing show --json` is the rich per-territory view (price + currency + start date/preserved for subs) and deliberately does NOT mirror the `pricing export` JSON — export/import keep their own import-compatible format.
+- Shared entry structs: `CustomerReviewsCommand.ReviewEntry` (list element + info object), `SubCommand.SubEntry` (sub groups nests it, sub list flattens it with a `group` ref). `ResolvedBuild` (TestFlightCommand) carries raw `platform`/`version` and derives the display `train`/`label` from them.
 
 ### Output formatting
 - **ANSI colors** — `red()`, `green()`, `yellow()` (orange 208), `bold()` in Formatting.swift. Auto-disabled when stdout is not a terminal (`isatty` check). `stderrRed()` uses a separate `isStderrTerminal` check for error messages.
