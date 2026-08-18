@@ -108,6 +108,7 @@ ascelerate apps build attach <bundle-id> [--version X] [--platform X]           
 ascelerate apps build attach-latest <bundle-id> [--version X] [--platform X]     # Attach the most recent build
 ascelerate apps build detach <bundle-id> [--version X] [--platform X]            # Remove the attached build
 ascelerate apps phased-release <bundle-id> [--version X] [--platform X]          # View/manage phased release
+ascelerate apps release <bundle-id> [--version X] [--platform X] [-y]            # Release a version in Pending Developer Release
 ascelerate apps app-info age-rating <bundle-id>                            # View age rating
 ascelerate apps app-info age-rating export <bundle-id>                     # Export age rating to JSON
 ascelerate apps app-info age-rating import <bundle-id> [--file X]          # Update age rating from JSON
@@ -664,7 +665,7 @@ Counts are approximate top-level resources from the 1.7.0 surface.
 - **Webhooks** (3) — webhooks + deliveries + pings (ASC event notifications; newer).
 - **Analytics / Sales / Finance** — **covered** via `reports sales/finance/analytics` (Sales & Trends, Financial, and App Analytics reports; gzipped TSV/CSV downloaded + summarized). Remaining: analytics-report `segments`/`instances` are exposed only through the `analytics` flow (no standalone commands), and **diagnostic signatures** (`diagnosticSignatures`) are untouched.
 - **Users & access** (3) — users, user invitations, actors (team management).
-- **App-level pricing & release** — `appPriceSchedules` (paid-app pricing), `subscriptionPlanAvailabilities`, `appStoreVersionPromotions`, `appStoreVersionReleaseRequests`, `endAppAvailabilityPreOrders`.
+- **App-level pricing & release** — `appPriceSchedules` (paid-app pricing), `subscriptionPlanAvailabilities`, `appStoreVersionPromotions`, `endAppAvailabilityPreOrders`. (`appStoreVersionReleaseRequests` is covered via `apps release`.)
 - **Provisioning extras** — `merchantIDs` (Apple Pay), `passTypeIDs` (Wallet).
 - **Niche** — accessibility declarations, `appEncryptionDeclarationDocuments`, Android-to-iOS app mapping.
 
